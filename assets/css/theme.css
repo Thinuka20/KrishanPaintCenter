@@ -1,0 +1,248 @@
+/* Light Theme (Default) */
+.theme-light {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --sidebar-bg: #212529;
+    --text-primary: #212529;
+    --border-color: #dee2e6;
+    --table-text: #212529;
+    --modal-bg: #ffffff;
+    --modal-header-bg: #f8f9fa;
+    --modal-border: #dee2e6;
+    --modal-text: #212529;
+    --modal-backdrop: rgba(0, 0, 0, 0.5);
+    --modal-close: #000000;
+}
+
+/* Dark Theme */
+.theme-dark {
+    --bg-primary: #35393b;
+    --bg-secondary: #5a5f64;
+    --sidebar-bg: #111215;
+    --text-primary: #ffffff;
+    --border-color: #495057;
+    --table-text: #ffffff;
+    --modal-bg: #2c3034;
+    --modal-header-bg: #343a40;
+    --modal-border: #495057;
+    --modal-text: #ffffff;
+    --modal-backdrop: rgba(0, 0, 0, 0.75);
+    --modal-close: #ffffff;
+}
+
+/* Blue Theme */
+.theme-blue {
+    --bg-primary: #eaf0ff;
+    --bg-secondary: #dae3fc;
+    --sidebar-bg: #0d6efd;
+    --text-primary: #212529;
+    --border-color: #dee2e6;
+    --table-text: #212529;
+    --modal-bg: #ffffff;
+    --modal-header-bg: #f0f4ff;
+    --modal-border: #0d6efd;
+    --modal-text: #212529;
+    --modal-backdrop: rgba(13, 110, 253, 0.5);
+    --modal-close: #0d6efd;
+}
+
+/* Green Theme */
+.theme-green {
+    --bg-primary: #eafaee;
+    --bg-secondary: #d5f8de;
+    --sidebar-bg: #198754;
+    --text-primary: #212529;
+    --border-color: #dee2e6;
+    --table-text: #212529;
+    --modal-bg: #ffffff;
+    --modal-header-bg: #d9fce2;
+    --modal-border: #198754;
+    --modal-text: #212529;
+    --modal-backdrop: rgba(25, 135, 84, 0.5);
+    --modal-close: #198754;
+}
+
+/* Apply Theme Variables to all elements */
+* {
+    transition: background-color 0.3s, color 0.3s;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.sidebar {
+    background-color: var(--sidebar-bg) !important;
+}
+
+.card {
+    background-color: var(--bg-primary) !important;
+    border-color: var(--border-color);
+}
+
+.card-header {
+    background-color: var(--bg-secondary) !important;
+    border-bottom-color: var(--border-color);
+}
+
+/* Table Styles */
+.table, 
+.table thead th, 
+.table tbody td {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Links inside tables */
+.table a {
+    color: var(--text-primary) !important;
+}
+
+.form-control {
+    background-color: var(--bg-primary) !important;
+    border-color: var(--border-color);
+    color: var(--text-primary) !important;
+}
+
+.form-control:focus {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+.daterangepicker {
+    background-color: #2c3034;
+    border: 1px solid #454d55;
+}
+
+.daterangepicker .calendar-table {
+    background-color: #2c3034;
+    border: none;
+}
+
+.daterangepicker td.off, 
+.daterangepicker td.off.in-range, 
+.daterangepicker td.off.start-date, 
+.daterangepicker td.off.end-date {
+    background-color: #343a40;
+    color: #6c757d;
+}
+
+.daterangepicker td.available:hover, 
+.daterangepicker th.available:hover {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.daterangepicker td.active, 
+.daterangepicker td.active:hover {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.daterangepicker td.in-range {
+    background-color: rgba(13, 110, 253, 0.2);
+    color: white;
+}
+
+.daterangepicker .calendar-table .next span, 
+.daterangepicker .calendar-table .prev span {
+    border-color: #fff;
+}
+
+.daterangepicker .ranges li {
+    color: #fff;
+    background-color: #2c3034;
+}
+
+.daterangepicker .ranges li:hover {
+    background-color: #0d6efd;
+}
+
+.daterangepicker .ranges li.active {
+    background-color: #0d6efd;
+}
+
+.daterangepicker:after {
+    border-bottom: 6px solid #2c3034;
+}
+
+.daterangepicker:before {
+    border-bottom: 7px solid #454d55;
+}
+
+.daterangepicker .drp-buttons {
+    border-top: 1px solid #454d55;
+}
+
+.daterangepicker .drp-selected {
+    color: #fff;
+}
+
+.daterangepicker .btn {
+    border-color: #454d55;
+}
+
+/* Enhance the input field styling */
+#dateRangePicker {
+    background-color: #2c3034;
+    border: 1px solid #454d55;
+    color: #fff;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.25rem;
+    width: 100%;
+}
+
+#dateRangePicker:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+
+/* Modal Styles */
+.modal {
+    --bs-modal-bg: var(--modal-bg);
+}
+.modal-content {
+    background-color: var(--modal-bg) !important;
+    backdrop-filter: none !important;
+    border-color: var(--modal-border) !important;
+    color: var(--modal-text) !important;
+}
+
+.modal-header {
+    background-color: var(--modal-header-bg) !important;
+    border-bottom-color: var(--modal-border) !important;
+    color: var(--modal-text) !important;
+}
+
+.modal-footer {
+    border-top-color: var(--modal-border) !important;
+    background-color: var(--modal-bg) !important;
+}
+
+.modal-backdrop.show {
+    background-color: var(--modal-backdrop) !important;
+}
+
+/* Close Button */
+.modal .btn-close {
+    filter: none;
+    opacity: 0.75;
+}
+
+.theme-dark .btn-close {
+    background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+}
+
+/* Modal Input Fields */
+.modal .form-control {
+    background-color: var(--modal-bg) !important;
+    border-color: var(--modal-border) !important;
+    color: var(--modal-text) !important;
+}
+
+.modal .form-control:focus {
+    border-color: var(--modal-border) !important;
+    box-shadow: 0 0 0 0.25rem rgba(var(--modal-border), 0.25) !important;
+}

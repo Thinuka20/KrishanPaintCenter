@@ -1,0 +1,60 @@
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    flex: 1;
+    padding: 20px 0;
+}
+
+.card {
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table-responsive {
+    margin-bottom: 20px;
+}
+
+.action-buttons {
+    white-space: nowrap;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.preview-image {
+    max-width: 200px;
+    max-height: 200px;
+    object-fit: cover;
+}
+
+.required:after {
+    content: " *";
+    color: red;
+}
+
+/* Invoice styles */
+.invoice-header {
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+}
+
+.invoice-footer {
+    border-top: 2px solid #dee2e6;
+    padding-top: 20px;
+    margin-top: 20px;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    .print-only {
+        display: block !important;
+    }
+}
