@@ -7,6 +7,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 // Get filter parameters
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');

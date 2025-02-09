@@ -6,6 +6,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $vehicle_id = (int)$_GET['id'];
 
 // Get vehicle and customer details
@@ -42,9 +47,9 @@ include 'header.php';
             <a href="add_estimate.php?vehicle_id=<?php echo $vehicle_id; ?>" class="btn btn-success">
                 <i class="fas fa-calculator"></i> New Estimate
             </a>
-            <a href="view_customer.php?id=<?php echo $vehicle['customer_id']; ?>" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Customer
-            </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Customers
+            </button>
         </div>
     </div>
 
@@ -111,46 +116,54 @@ include 'header.php';
                     <tbody>
                         <?php
                         $query = "SELECT ri.*, 
-                                 GROUP_CONCAT(CONCAT(i.name, ' (', rii.quantity, ')') SEPARATOR ', ') as items
-                                 FROM repair_invoices ri
-                                 LEFT JOIN repair_invoice_items rii ON ri.id = rii.repair_invoice_id
-                                 LEFT JOIN items i ON rii.item_id = i.id
-                                 WHERE ri.vehicle_id = $vehicle_id
-                                 GROUP BY ri.id
-                                 ORDER BY ri.invoice_date DESC";
+                        GROUP_CONCAT(
+                            CONCAT(
+                                COALESCE(i.name, rii.description),
+                                CASE 
+                                    WHEN i.name IS NOT NULL THEN CONCAT(' (', rii.price, ')')
+                                    ELSE ''
+                                END
+                            ) 
+                            SEPARATOR ', '
+                        ) as items
+                        FROM repair_invoices ri
+                        LEFT JOIN repair_invoice_items rii ON ri.id = rii.repair_invoice_id
+                        LEFT JOIN items i ON rii.item_id = i.id
+                        WHERE ri.vehicle_id = $vehicle_id
+                        GROUP BY ri.id
+                        ORDER BY ri.invoice_date DESC";
                         $repairs = Database::search($query);
                         while ($repair = $repairs->fetch_assoc()):
                         ?>
-                        <tr>
-                            <td><?php echo date('Y-m-d', strtotime($repair['invoice_date'])); ?></td>
-                            <td><?php echo $repair['invoice_number']; ?></td>
-                            <td><?php echo $repair['items']; ?></td>
-                            <td><?php echo formatCurrency($repair['total_amount']); ?></td>
-                            <td>
-                                <span class="badge bg-<?php 
-                                    echo $repair['payment_status'] === 'paid' ? 'success' : 
-                                        ($repair['payment_status'] === 'partial' ? 'warning' : 'danger'); 
-                                ?>">
-                                    <?php echo ucfirst($repair['payment_status']); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <a href="view_repair_invoice.php?id=<?php echo $repair['id']; ?>" 
-                                   class="btn btn-sm btn-info" title="View">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="print_repair_invoice.php?id=<?php echo $repair['id']; ?>" 
-                                   class="btn btn-sm btn-secondary" title="Print" target="_blank">
-                                    <i class="fas fa-print"></i>
-                                </a>
-                                <?php if ($repair['payment_status'] !== 'paid'): ?>
-                                <a href="update_payment_status.php?type=repair&id=<?php echo $repair['id']; ?>" 
-                                   class="btn btn-sm btn-success" title="Update Payment">
-                                    <i class="fas fa-dollar-sign"></i>
-                                </a>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td><?php echo date('Y-m-d', strtotime($repair['invoice_date'])); ?></td>
+                                <td><?php echo $repair['invoice_number']; ?></td>
+                                <td><?php echo $repair['items']; ?></td>
+                                <td><?php echo formatCurrency($repair['total_amount']); ?></td>
+                                <td>
+                                    <span class="badge bg-<?php
+                                                            echo $repair['payment_status'] === 'paid' ? 'success' : ($repair['payment_status'] === 'partial' ? 'warning' : 'danger');
+                                                            ?>">
+                                        <?php echo ucfirst($repair['payment_status']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="view_repair_invoice.php?id=<?php echo $repair['id']; ?>"
+                                        class="btn btn-sm btn-info" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="print_repair_invoice.php?id=<?php echo $repair['id']; ?>"
+                                        class="btn btn-sm btn-secondary" title="Print" target="_blank">
+                                        <i class="fas fa-print"></i>
+                                    </a>
+                                    <?php if ($repair['payment_status'] !== 'paid'): ?>
+                                        <a href="update_payment_status.php?type=repair&id=<?php echo $repair['id']; ?>"
+                                            class="btn btn-sm btn-success" title="Update Payment">
+                                            <i class="fas fa-dollar-sign"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
                         <?php endwhile; ?>
                     </tbody>
                 </table>
@@ -170,49 +183,37 @@ include 'header.php';
                         <tr>
                             <th>Date</th>
                             <th>Estimate #</th>
-                            <th>Valid Until</th>
                             <th>Amount</th>
-                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php
-                        $query = "SELECT * FROM estimates WHERE vehicle_id = $vehicle_id ORDER BY estimate_date DESC";
+                        $query = "SELECT e.*, 
+                             GROUP_CONCAT(ei.description SEPARATOR ', ') as services
+                             FROM estimates e
+                             LEFT JOIN estimate_items ei ON e.id = ei.estimate_id
+                             WHERE e.vehicle_id = $vehicle_id 
+                             GROUP BY e.id
+                             ORDER BY e.estimate_date DESC";
                         $estimates = Database::search($query);
                         while ($estimate = $estimates->fetch_assoc()):
                         ?>
-                        <tr>
-                            <td><?php echo date('Y-m-d', strtotime($estimate['estimate_date'])); ?></td>
-                            <td><?php echo $estimate['estimate_number']; ?></td>
-                            <td><?php echo date('Y-m-d', strtotime($estimate['valid_until'])); ?></td>
-                            <td><?php echo formatCurrency($estimate['total_amount']); ?></td>
-                            <td>
-                                <span class="badge bg-<?php 
-                                    echo $estimate['status'] === 'approved' ? 'success' : 
-                                        ($estimate['status'] === 'pending' ? 'warning' : 'danger'); 
-                                ?>">
-                                    <?php echo ucfirst($estimate['status']); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <a href="view_estimate.php?id=<?php echo $estimate['id']; ?>" 
-                                   class="btn btn-sm btn-info" title="View">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="print_estimate.php?id=<?php echo $estimate['id']; ?>" 
-                                   class="btn btn-sm btn-secondary" title="Print" target="_blank">
-                                    <i class="fas fa-print"></i>
-                                </a>
-                                <?php if ($estimate['status'] === 'pending'): ?>
-                                <a href="convert_to_invoice.php?id=<?php echo $estimate['id']; ?>" 
-                                   class="btn btn-sm btn-success" title="Convert to Invoice"
-                                   onclick="return confirm('Convert this estimate to invoice?');">
-                                    <i class="fas fa-file-invoice"></i>
-                                </a>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td><?php echo date('Y-m-d', strtotime($estimate['estimate_date'])); ?></td>
+                                <td><?php echo htmlspecialchars($estimate['estimate_number']); ?></td>
+                                <td><?php echo formatCurrency($estimate['total_amount']); ?></td>
+                                <td>
+                                    <a href="view_repair_estimate.php?id=<?php echo $estimate['id']; ?>"
+                                        class="btn btn-sm btn-info" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="print_estimate.php?id=<?php echo $estimate['id']; ?>"
+                                        class="btn btn-sm btn-secondary" title="Print" target="_blank">
+                                        <i class="fas fa-print"></i>
+                                    </a>
+                                </td>
+                            </tr>
                         <?php endwhile; ?>
                     </tbody>
                 </table>

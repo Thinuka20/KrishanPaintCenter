@@ -7,6 +7,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $employee_id = (int)$_GET['id'];
 $month = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
 
@@ -72,19 +77,16 @@ $total_salary = $total_day_amount + $total_ot_amount;
 
 class MYPDF extends TCPDF {
     public function Header() {
-        // Logo
-        $image_file = K_PATH_IMAGES.'logo.png';
-        if(file_exists($image_file)) {
-            $this->Image($image_file, 15, 10, 50, '', 'PNG', '', 'T', false, 300, '', false, false, 0, false, false, false);
-        }
-        
+
+        $this->Ln(5);
+
         // Company Details
         $this->SetFont('helvetica', 'B', 15);
-        $this->Cell(0, 5, 'KRISHAN PAINT CENTER', 0, 1, 'R');
+        $this->Cell(0, 5, 'KRISHAN PAINT CENTER', 0, 1, 'C');
         $this->SetFont('helvetica', '', 9);
-        $this->Cell(0, 5, 'Professional Auto Paint Services', 0, 1, 'R');
-        $this->Cell(0, 5, '[Your Address]', 0, 1, 'R');
-        $this->Cell(0, 5, 'Tel: [Your Phone] | Email: [Your Email]', 0, 1, 'R');
+        $this->Cell(0, 5, 'Dent Repair, Accident Repair, Painting Works and All Vehicle Repair', 0, 1, 'C');
+        $this->Cell(0, 5, 'Siththamadama, Bangadeniya, Chilaw.', 0, 1, 'C');
+        $this->Cell(0, 5, 'Tel: 0777 455 876 / 0766 230 429 | Email: krishanpaintcenter@gmail.com', 0, 1, 'C');
         
         // Line break
         $this->SetLineWidth(0.5);
@@ -100,7 +102,7 @@ $pdf->SetCreator('Krishan Paint Center');
 $pdf->SetTitle('Salary Slip - ' . $employee['name'] . ' - ' . date('F Y', strtotime($month)));
 
 // Set margins
-$pdf->SetMargins(15, 40, 15);
+$pdf->SetMargins(15, 40, 15, 40);
 $pdf->SetAutoPageBreak(TRUE, 15);
 
 // Add page

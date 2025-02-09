@@ -27,7 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
 
-            header("Location: index.php");
+            if ($user['role'] == 'admin') {
+                header("Location: index.php");
+            } else {
+                header("Location: items.php");
+            }
+
             exit();
         } else {
             $error = 'Invalid password';
@@ -36,6 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'User not found';
     }
 }
+
+$query = "SELECT * FROM settings ORDER BY id DESC LIMIT 1";
+$result = Database::search($query);
+$business_settings = $result->fetch_assoc();
+$current_theme = $business_settings['theme'] ?? 'light';
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -43,36 +54,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Krishan Paint Center</title>
+    <title><?php echo htmlspecialchars($business_settings['business_name'] ?? 'Krishan Paint Center'); ?></title>
+
+    <?php if (!empty($business_settings['favicon'])): ?>
+        <link rel="icon" type="image/x-icon" href="<?php echo htmlspecialchars($business_settings['favicon']); ?>">
+    <?php endif; ?>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-    background-image: url('assets/background2.webp');
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center;
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-}
+            background-image: url('assets/background2.webp');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
 
-body::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: inherit;
-    background-size: inherit;
-    background-repeat: inherit;
-    background-position: inherit;
-    filter: blur(5px);  /* Apply blur */
-    z-index: -1;  /* Keep the background behind content */
-}
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: inherit;
+            background-size: inherit;
+            background-repeat: inherit;
+            background-position: inherit;
+            filter: blur(5px);
+            /* Apply blur */
+            z-index: -1;
+            /* Keep the background behind content */
+        }
+
         .login-container {
             max-width: 400px;
             margin: 100px auto;

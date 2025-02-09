@@ -8,6 +8,11 @@ require_once('tcpdf/tcpdf.php');
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
 
@@ -30,7 +35,7 @@ if (isset($_GET['export_pdf'])) {
     $pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
 
     // Add a page
-    $pdf->AddPage('L', 'A4');
+    $pdf->AddPage('P', 'A4');
 
     // Set header content
     $pdf->SetFont('helvetica', 'B', 16);
@@ -43,18 +48,12 @@ if (isset($_GET['export_pdf'])) {
 
     // Summary Section
     $query = "SELECT 
-                SUM(quantity) as total_quantity,
-                SUM(subtotal) as total_amount
-              FROM (
-                  SELECT quantity, subtotal FROM item_invoice_details iid
-                  JOIN item_invoices ii ON iid.item_invoice_id = ii.id
-                  WHERE ii.invoice_date BETWEEN '$start_date' AND '$end_date'
-                  UNION ALL
-                  SELECT quantity, subtotal FROM repair_invoice_items rii
-                  JOIN repair_invoices ri ON rii.repair_invoice_id = ri.id
-                  WHERE ri.invoice_date BETWEEN '$start_date' AND '$end_date'
-              ) as combined_sales";
-    
+    SUM(iid.quantity) as total_quantity,
+    SUM(iid.subtotal) as total_amount
+FROM item_invoice_details iid
+JOIN item_invoices ii ON iid.item_invoice_id = ii.id 
+WHERE ii.invoice_date BETWEEN '$start_date' AND '$end_date'";
+
     $result = Database::search($query);
     $summary = $result->fetch_assoc();
 
@@ -72,10 +71,10 @@ if (isset($_GET['export_pdf'])) {
     // Table Header
     $pdf->SetFont('helvetica', 'B', 10);
     $pdf->SetFillColor(240, 240, 240);
-    
+
     $headers = array('Item Code', 'Item Name', 'Quantity Sold', 'Unit Price', 'Total Sales', 'Last Sale Date');
-    $widths = array(30, 80, 30, 35, 35, 40);
-    
+    $widths = array(20, 60, 25, 28, 30, 27);
+
     foreach ($headers as $i => $header) {
         $pdf->Cell($widths[$i], 7, $header, 1, 0, 'C', true);
     }
@@ -85,41 +84,22 @@ if (isset($_GET['export_pdf'])) {
     $pdf->SetFont('helvetica', '', 9);
 
     $query = "SELECT 
-                i.item_code,
-                i.name,
-                i.unit_price,
-                SUM(COALESCE(ri.quantity, 0) + COALESCE(ii.quantity, 0)) as total_quantity,
-                SUM(COALESCE(ri.subtotal, 0) + COALESCE(ii.subtotal, 0)) as total_amount,
-                MAX(GREATEST(COALESCE(ri.last_date, '1900-01-01'), COALESCE(ii.last_date, '1900-01-01'))) as last_sale_date
-              FROM items i
-              LEFT JOIN (
-                  SELECT 
-                      item_id,
-                      SUM(quantity) as quantity,
-                      SUM(subtotal) as subtotal,
-                      MAX(ri.invoice_date) as last_date
-                  FROM repair_invoice_items rii
-                  JOIN repair_invoices ri ON rii.repair_invoice_id = ri.id
-                  WHERE ri.invoice_date BETWEEN '$start_date' AND '$end_date'
-                  GROUP BY item_id
-              ) ri ON i.id = ri.item_id
-              LEFT JOIN (
-                  SELECT 
-                      item_id,
-                      SUM(quantity) as quantity,
-                      SUM(subtotal) as subtotal,
-                      MAX(ii.invoice_date) as last_date
-                  FROM item_invoice_details iid
-                  JOIN item_invoices ii ON iid.item_invoice_id = ii.id
-                  WHERE ii.invoice_date BETWEEN '$start_date' AND '$end_date'
-                  GROUP BY item_id
-              ) ii ON i.id = ii.item_id
-              WHERE (ri.quantity IS NOT NULL OR ii.quantity IS NOT NULL)
-              GROUP BY i.id, i.item_code, i.name, i.unit_price
-              ORDER BY total_quantity DESC";
+    i.item_code,
+    i.name,
+    i.unit_price,
+    COALESCE(SUM(iid.quantity), 0) as total_quantity,
+    COALESCE(SUM(iid.subtotal), 0) as total_amount,
+    MAX(ii.invoice_date) as last_sale_date
+FROM items i
+LEFT JOIN item_invoice_details iid ON i.id = iid.item_id
+LEFT JOIN item_invoices ii ON iid.item_invoice_id = ii.id 
+    AND ii.invoice_date BETWEEN '$start_date' AND '$end_date'
+WHERE iid.id IS NOT NULL
+GROUP BY i.id, i.item_code, i.name, i.unit_price
+ORDER BY item_code ASC";
 
     $result = Database::search($query);
-    
+
     while ($row = $result->fetch_assoc()) {
         $pdf->Cell($widths[0], 6, $row['item_code'], 1);
         $pdf->Cell($widths[1], 6, $row['name'], 1);
@@ -129,17 +109,6 @@ if (isset($_GET['export_pdf'])) {
         $pdf->Cell($widths[5], 6, date('Y-m-d', strtotime($row['last_sale_date'])), 1, 0, 'C');
         $pdf->Ln();
     }
-
-    // Signature section
-    $pdf->Ln(20);
-    $pdf->SetFont('helvetica', '', 10);
-    $pdf->Cell(90, 6, '............................', 0, 0, 'C');
-    $pdf->Cell(90, 6, '............................', 0, 0, 'C');
-    $pdf->Cell(90, 6, '............................', 0, 0, 'C');
-    $pdf->Ln();
-    $pdf->Cell(90, 6, 'Prepared By', 0, 0, 'C');
-    $pdf->Cell(90, 6, 'Checked By', 0, 0, 'C');
-    $pdf->Cell(90, 6, 'Approved By', 0, 0, 'C');
 
     // Output PDF
     $pdf->Output('Item_Sales_Report_' . date('Y-m-d') . '.pdf', 'I');
@@ -155,10 +124,13 @@ include 'header.php';
             <h2>Item Sales Report</h2>
         </div>
         <div class="col-md-6 text-end">
-            <a href="?start_date=<?php echo $start_date; ?>&end_date=<?php echo $end_date; ?>&export_pdf=1" 
-               class="btn btn-secondary">
-                <i class="fas fa-file-pdf"></i> Export PDF
+            <a href="?start_date=<?php echo $start_date; ?>&end_date=<?php echo $end_date; ?>&export_pdf=1"
+                class="btn btn-primary" target="_blank">
+                <i class="fas fa-print"></i> Print Report
             </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Reports
+            </button>
         </div>
     </div>
 
@@ -168,15 +140,15 @@ include 'header.php';
                 <div class="col-md-4">
                     <div class="form-group">
                         <label>Start Date</label>
-                        <input type="date" name="start_date" class="form-control" 
-                               value="<?php echo $start_date; ?>">
+                        <input type="date" name="start_date" class="form-control"
+                            value="<?php echo $start_date; ?>">
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="form-group">
                         <label>End Date</label>
-                        <input type="date" name="end_date" class="form-control" 
-                               value="<?php echo $end_date; ?>">
+                        <input type="date" name="end_date" class="form-control"
+                            value="<?php echo $end_date; ?>">
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -188,18 +160,12 @@ include 'header.php';
             <div class="row mb-4">
                 <?php
                 $query = "SELECT 
-                            SUM(quantity) as total_quantity,
-                            SUM(subtotal) as total_amount
-                          FROM (
-                              SELECT quantity, subtotal FROM item_invoice_details iid
-                              JOIN item_invoices ii ON iid.item_invoice_id = ii.id
-                              WHERE ii.invoice_date BETWEEN '$start_date' AND '$end_date'
-                              UNION ALL
-                              SELECT quantity, subtotal FROM repair_invoice_items rii
-                              JOIN repair_invoices ri ON rii.repair_invoice_id = ri.id
-                              WHERE ri.invoice_date BETWEEN '$start_date' AND '$end_date'
-                          ) as combined_sales";
-                
+                SUM(iid.quantity) as total_quantity,
+                SUM(iid.subtotal) as total_amount
+            FROM item_invoice_details iid
+            JOIN item_invoices ii ON iid.item_invoice_id = ii.id 
+            WHERE ii.invoice_date BETWEEN '$start_date' AND '$end_date'";
+
                 $result = Database::search($query);
                 $summary = $result->fetch_assoc();
                 ?>
@@ -237,51 +203,32 @@ include 'header.php';
                     <tbody>
                         <?php
                         $query = "SELECT 
-                                    i.item_code,
-                                    i.name,
-                                    i.unit_price,
-                                    SUM(COALESCE(ri.quantity, 0) + COALESCE(ii.quantity, 0)) as total_quantity,
-                                    SUM(COALESCE(ri.subtotal, 0) + COALESCE(ii.subtotal, 0)) as total_amount,
-                                    MAX(GREATEST(COALESCE(ri.last_date, '1900-01-01'), COALESCE(ii.last_date, '1900-01-01'))) as last_sale_date
-                                FROM items i
-                                LEFT JOIN (
-                                    SELECT 
-                                        item_id,
-                                        SUM(quantity) as quantity,
-                                        SUM(subtotal) as subtotal,
-                                        MAX(ri.invoice_date) as last_date
-                                    FROM repair_invoice_items rii
-                                    JOIN repair_invoices ri ON rii.repair_invoice_id = ri.id
-                                    WHERE ri.invoice_date BETWEEN '$start_date' AND '$end_date'
-                                    GROUP BY item_id
-                                ) ri ON i.id = ri.item_id
-                                LEFT JOIN (
-                                    SELECT 
-                                        item_id,
-                                        SUM(quantity) as quantity,
-                                        SUM(subtotal) as subtotal,
-                                        MAX(ii.invoice_date) as last_date
-                                    FROM item_invoice_details iid
-                                    JOIN item_invoices ii ON iid.item_invoice_id = ii.id
-                                    WHERE ii.invoice_date BETWEEN '$start_date' AND '$end_date'
-                                    GROUP BY item_id
-                                ) ii ON i.id = ii.item_id
-                                WHERE (ri.quantity IS NOT NULL OR ii.quantity IS NOT NULL)
-                                GROUP BY i.id, i.item_code, i.name, i.unit_price
-                                ORDER BY total_quantity DESC";
+                        i.item_code,
+                        i.name,
+                        i.unit_price,
+                        COALESCE(SUM(iid.quantity), 0) as total_quantity,
+                        COALESCE(SUM(iid.subtotal), 0) as total_amount,
+                        MAX(ii.invoice_date) as last_sale_date
+                    FROM items i
+                    LEFT JOIN item_invoice_details iid ON i.id = iid.item_id
+                    LEFT JOIN item_invoices ii ON iid.item_invoice_id = ii.id 
+                        AND ii.invoice_date BETWEEN '$start_date' AND '$end_date'
+                    WHERE iid.id IS NOT NULL
+                    GROUP BY i.id, i.item_code, i.name, i.unit_price
+                    ORDER BY item_code ASC";
 
                         $result = Database::search($query);
-                        
+
                         while ($row = $result->fetch_assoc()):
                         ?>
-                        <tr>
-                            <td><?php echo $row['item_code']; ?></td>
-                            <td><?php echo $row['name']; ?></td>
-                            <td class="text-end"><?php echo number_format($row['total_quantity']); ?></td>
-                            <td class="text-end"><?php echo formatCurrency($row['unit_price']); ?></td>
-                            <td class="text-end"><?php echo formatCurrency($row['total_amount']); ?></td>
-                            <td class="text-center"><?php echo date('Y-m-d', strtotime($row['last_sale_date'])); ?></td>
-                        </tr>
+                            <tr>
+                                <td><?php echo $row['item_code']; ?></td>
+                                <td><?php echo $row['name']; ?></td>
+                                <td class="text-end"><?php echo number_format($row['total_quantity']); ?></td>
+                                <td class="text-end"><?php echo formatCurrency($row['unit_price']); ?></td>
+                                <td class="text-end"><?php echo formatCurrency($row['total_amount']); ?></td>
+                                <td class="text-center"><?php echo date('Y-m-d', strtotime($row['last_sale_date'])); ?></td>
+                            </tr>
                         <?php endwhile; ?>
                     </tbody>
                 </table>
@@ -299,81 +246,81 @@ include 'header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-<?php
-// Prepare data for chart
-$result->data_seek(0);
-$labels = [];
-$quantities = [];
-$amounts = [];
+    <?php
+    // Prepare data for chart
+    $result->data_seek(0);
+    $labels = [];
+    $quantities = [];
+    $amounts = [];
 
-while ($row = $result->fetch_assoc()) {
-    if($row['total_quantity'] > 0) {
-        $labels[] = $row['name'];
-        $quantities[] = $row['total_quantity'];
-        $amounts[] = $row['total_amount'];
+    while ($row = $result->fetch_assoc()) {
+        if ($row['total_quantity'] > 0) {
+            $labels[] = $row['name'];
+            $quantities[] = $row['total_quantity'];
+            $amounts[] = $row['total_amount'];
+        }
     }
-}
-?>
+    ?>
 
-// Chart data
-const labels = <?php echo json_encode($labels); ?>;
-const quantities = <?php echo json_encode($quantities); ?>;
-const amounts = <?php echo json_encode($amounts); ?>;
+    // Chart data
+    const labels = <?php echo json_encode($labels); ?>;
+    const quantities = <?php echo json_encode($quantities); ?>;
+    const amounts = <?php echo json_encode($amounts); ?>;
 
-// Create chart
-new Chart(document.getElementById('itemSalesChart'), {
-    type: 'bar',
-    data: {
-        labels: labels,
-        datasets: [{
-            label: 'Quantity Sold',
-            data: quantities,
-            backgroundColor: 'rgba(75, 192, 192, 0.5)',
-            borderColor: 'rgb(75, 192, 192)',
-            borderWidth: 1,
-            yAxisID: 'y'
-        }, {
-            label: 'Sales Amount (Rs)',
-            data: amounts,
-            backgroundColor: 'rgba(255, 99, 132, 0.5)',
-            borderColor: 'rgb(255, 99, 132)',
-            borderWidth: 1,
-            yAxisID: 'y1'
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Item Sales Analysis'
-            }
+    // Create chart
+    new Chart(document.getElementById('itemSalesChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Quantity Sold',
+                data: quantities,
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                borderColor: 'rgb(75, 192, 192)',
+                borderWidth: 1,
+                yAxisID: 'y'
+            }, {
+                label: 'Sales Amount (Rs)',
+                data: amounts,
+                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                borderColor: 'rgb(255, 99, 132)',
+                borderWidth: 1,
+                yAxisID: 'y1'
+            }]
         },
-        scales: {
-            y: {
-                type: 'linear',
-                display: true,
-                position: 'left',
+        options: {
+            responsive: true,
+            plugins: {
                 title: {
                     display: true,
-                    text: 'Quantity'
+                    text: 'Item Sales Analysis'
                 }
             },
-            y1: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                title: {
+            scales: {
+                y: {
+                    type: 'linear',
                     display: true,
-                    text: 'Amount (Rs)'
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Quantity'
+                    }
                 },
-                grid: {
-                    drawOnChartArea: false
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Amount (Rs)'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    }
                 }
             }
         }
-    }
-});
+    });
 </script>
 
 <?php include 'footer.php'; ?>

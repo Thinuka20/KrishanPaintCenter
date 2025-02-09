@@ -23,19 +23,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $valid_until = validateInput($_POST['valid_until']);
     $notes = validateInput($_POST['notes']);
     $total_amount = 0;
-    
+
     // Generate estimate number
     $estimate_number = generateUniqueNumber('EST');
-    
+
     Database::$connection->begin_transaction();
-    
+
     try {
         // Insert estimate header
         $query = "INSERT INTO estimates (vehicle_id, estimate_number, estimate_date, valid_until, notes, status) 
                   VALUES ($vehicle_id, '$estimate_number', '$estimate_date', '$valid_until', '$notes', 'pending')";
         Database::iud($query);
         $estimate_id = Database::$connection->insert_id;
-        
+
         // Insert estimate items
         foreach ($_POST['item_id'] as $key => $item_id) {
             if (!empty($item_id)) {
@@ -43,21 +43,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $unit_price = (float)$_POST['unit_price'][$key];
                 $subtotal = $quantity * $unit_price;
                 $total_amount += $subtotal;
-                
+
                 $query = "INSERT INTO estimate_items (estimate_id, item_id, quantity, unit_price, subtotal) 
                           VALUES ($estimate_id, $item_id, $quantity, $unit_price, $subtotal)";
                 Database::iud($query);
             }
         }
-        
+
         // Update estimate total
         $query = "UPDATE estimates SET total_amount = $total_amount WHERE id = $estimate_id";
         Database::iud($query);
-        
+
         Database::$connection->commit();
         header("Location: view_estimate.php?id=$estimate_id");
         exit();
-        
     } catch (Exception $e) {
         Database::$connection->rollback();
         $error = "Error creating estimate: " . $e->getMessage();
@@ -69,15 +68,20 @@ include 'header.php';
 
 <div class="container content">
     <div class="row mb-3">
-        <div class="col">
-            <h2>Create New Estimate</h2>
+        <div class="col-md-6">
+            <h2>Create New Item Invoice</h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Estimates
+            </button>
         </div>
     </div>
 
     <div class="card">
         <div class="card-body">
             <?php if (isset($error)): ?>
-            <div class="alert alert-danger"><?php echo $error; ?></div>
+                <div class="alert alert-danger"><?php echo $error; ?></div>
             <?php endif; ?>
 
             <form method="POST" id="estimate-form" onsubmit="return validateForm('estimate-form')">
@@ -86,8 +90,8 @@ include 'header.php';
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="required">Vehicle</label>
-                            <select name="vehicle_id" class="form-control select2" required 
-                                    <?php echo $vehicle_id ? 'disabled' : ''; ?>>
+                            <select name="vehicle_id" class="form-control select2" required
+                                <?php echo $vehicle_id ? 'disabled' : ''; ?>>
                                 <option value="">Select Vehicle</option>
                                 <?php
                                 $query = "SELECT v.*, c.name as customer_name 
@@ -97,27 +101,27 @@ include 'header.php';
                                 $result = Database::search($query);
                                 while ($row = $result->fetch_assoc()):
                                 ?>
-                                <option value="<?php echo $row['id']; ?>" 
+                                    <option value="<?php echo $row['id']; ?>"
                                         <?php echo $vehicle_id == $row['id'] ? 'selected' : ''; ?>>
-                                    <?php echo $row['registration_number'] . ' - ' . $row['customer_name']; ?>
-                                </option>
+                                        <?php echo $row['registration_number'] . ' - ' . $row['customer_name']; ?>
+                                    </option>
                                 <?php endwhile; ?>
                             </select>
                             <?php if ($vehicle_id): ?>
-                            <input type="hidden" name="vehicle_id" value="<?php echo $vehicle_id; ?>">
+                                <input type="hidden" name="vehicle_id" value="<?php echo $vehicle_id; ?>">
                             <?php endif; ?>
                         </div>
 
                         <div class="form-group">
                             <label class="required">Estimate Date</label>
-                            <input type="date" name="estimate_date" class="form-control" 
-                                   required value="<?php echo date('Y-m-d'); ?>">
+                            <input type="date" name="estimate_date" class="form-control"
+                                required value="<?php echo date('Y-m-d'); ?>">
                         </div>
 
                         <div class="form-group">
                             <label class="required">Valid Until</label>
-                            <input type="date" name="valid_until" class="form-control" 
-                                   required value="<?php echo date('Y-m-d', strtotime('+30 days')); ?>">
+                            <input type="date" name="valid_until" class="form-control"
+                                required value="<?php echo date('Y-m-d', strtotime('+30 days')); ?>">
                         </div>
                     </div>
 
@@ -152,27 +156,27 @@ include 'header.php';
                                         $result = Database::search($query);
                                         while ($row = $result->fetch_assoc()):
                                         ?>
-                                        <option value="<?php echo $row['id']; ?>" 
+                                            <option value="<?php echo $row['id']; ?>"
                                                 data-price="<?php echo $row['unit_price']; ?>">
-                                            <?php echo $row['name'] . ' (Rs.' . number_format($row['unit_price'], 2) . ')'; ?>
-                                        </option>
+                                                <?php echo $row['name'] . ' (Rs.' . number_format($row['unit_price'], 2) . ')'; ?>
+                                            </option>
                                         <?php endwhile; ?>
                                     </select>
                                 </td>
                                 <td>
-                                    <input type="number" name="quantity[]" class="form-control item-quantity" 
-                                           required min="1" onchange="updateSubtotal(this.closest('tr'))">
+                                    <input type="number" name="quantity[]" class="form-control item-quantity"
+                                        required min="1" onchange="updateSubtotal(this.closest('tr'))">
                                 </td>
                                 <td>
-                                    <input type="number" name="unit_price[]" class="form-control item-price" 
-                                           required step="0.01" onchange="updateSubtotal(this.closest('tr'))">
+                                    <input type="number" name="unit_price[]" class="form-control item-price"
+                                        required step="0.01" onchange="updateSubtotal(this.closest('tr'))">
                                 </td>
                                 <td>
                                     <input type="number" class="form-control item-subtotal" readonly step="0.01">
                                 </td>
                                 <td>
-                                    <button type="button" class="btn btn-danger btn-sm" 
-                                            onclick="this.closest('tr').remove(); calculateTotal();">
+                                    <button type="button" class="btn btn-danger btn-sm"
+                                        onclick="this.closest('tr').remove(); calculateTotal();">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
@@ -194,8 +198,8 @@ include 'header.php';
 
                 <div class="form-group mt-4">
                     <button type="submit" class="btn btn-primary">Save Estimate</button>
-                    <a href="<?php echo $vehicle_id ? "vehicle_history.php?id=$vehicle_id" : "estimates.php"; ?>" 
-                       class="btn btn-secondary">Cancel</a>
+                    <a href="<?php echo $vehicle_id ? "vehicle_history.php?id=$vehicle_id" : "estimates.php"; ?>"
+                        class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
         </div>
@@ -212,27 +216,27 @@ include 'header.php';
                 $result = Database::search($query);
                 while ($row = $result->fetch_assoc()):
                 ?>
-                <option value="<?php echo $row['id']; ?>" 
+                    <option value="<?php echo $row['id']; ?>"
                         data-price="<?php echo $row['unit_price']; ?>">
-                    <?php echo $row['name'] . ' (Rs.' . number_format($row['unit_price'], 2) . ')'; ?>
-                </option>
+                        <?php echo $row['name'] . ' (Rs.' . number_format($row['unit_price'], 2) . ')'; ?>
+                    </option>
                 <?php endwhile; ?>
             </select>
         </td>
         <td>
-            <input type="number" name="quantity[]" class="form-control item-quantity" 
-                   required min="1" onchange="updateSubtotal(this.closest('tr'))">
+            <input type="number" name="quantity[]" class="form-control item-quantity"
+                required min="1" onchange="updateSubtotal(this.closest('tr'))">
         </td>
         <td>
-            <input type="number" name="unit_price[]" class="form-control item-price" 
-                   required step="0.01" onchange="updateSubtotal(this.closest('tr'))">
+            <input type="number" name="unit_price[]" class="form-control item-price"
+                required step="0.01" onchange="updateSubtotal(this.closest('tr'))">
         </td>
         <td>
             <input type="number" class="form-control item-subtotal" readonly step="0.01">
         </td>
         <td>
-            <button type="button" class="btn btn-danger btn-sm" 
-                    onclick="this.closest('tr').remove(); calculateTotal();">
+            <button type="button" class="btn btn-danger btn-sm"
+                onclick="this.closest('tr').remove(); calculateTotal();">
                 <i class="fas fa-trash"></i>
             </button>
         </td>
@@ -240,64 +244,64 @@ include 'header.php';
 </template>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    initializeSelect2();
-    setupItemSelectHandlers();
-});
-
-function initializeSelect2() {
-    $('.select2').select2({
-        width: '100%'
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeSelect2();
+        setupItemSelectHandlers();
     });
-}
 
-function setupItemSelectHandlers() {
-    $(document).on('select2:select', '.item-select', function(e) {
-        const row = $(this).closest('tr');
-        const price = $(this).find(':selected').data('price');
-        row.find('.item-price').val(price);
-        updateSubtotal(row[0]);
-    });
-}
-
-function addItemRow() {
-    const template = document.getElementById('item-row-template');
-    const clone = template.content.cloneNode(true);
-    document.getElementById('items-container').appendChild(clone);
-    initializeSelect2();
-}
-
-function updateSubtotal(row) {
-    const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
-    const price = parseFloat(row.querySelector('.item-price').value) || 0;
-    const subtotal = quantity * price;
-    row.querySelector('.item-subtotal').value = subtotal.toFixed(2);
-    calculateTotal();
-}
-
-function calculateTotal() {
-    let total = 0;
-    document.querySelectorAll('.item-subtotal').forEach(function(element) {
-        total += parseFloat(element.value) || 0;
-    });
-    document.getElementById('total-amount').textContent = 'Rs. ' + total.toFixed(2);
-}
-
-function validateForm(formId) {
-    const form = document.getElementById(formId);
-    if (!form.checkValidity()) {
-        return false;
+    function initializeSelect2() {
+        $('.select2').select2({
+            width: '100%'
+        });
     }
 
-    const validUntil = new Date(form.valid_until.value);
-    const today = new Date();
-    if (validUntil < today) {
-        alert('Valid until date must be in the future');
-        return false;
+    function setupItemSelectHandlers() {
+        $(document).on('select2:select', '.item-select', function(e) {
+            const row = $(this).closest('tr');
+            const price = $(this).find(':selected').data('price');
+            row.find('.item-price').val(price);
+            updateSubtotal(row[0]);
+        });
     }
 
-    return true;
-}
+    function addItemRow() {
+        const template = document.getElementById('item-row-template');
+        const clone = template.content.cloneNode(true);
+        document.getElementById('items-container').appendChild(clone);
+        initializeSelect2();
+    }
+
+    function updateSubtotal(row) {
+        const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
+        const price = parseFloat(row.querySelector('.item-price').value) || 0;
+        const subtotal = quantity * price;
+        row.querySelector('.item-subtotal').value = subtotal.toFixed(2);
+        calculateTotal();
+    }
+
+    function calculateTotal() {
+        let total = 0;
+        document.querySelectorAll('.item-subtotal').forEach(function(element) {
+            total += parseFloat(element.value) || 0;
+        });
+        document.getElementById('total-amount').textContent = 'Rs. ' + total.toFixed(2);
+    }
+
+    function validateForm(formId) {
+        const form = document.getElementById(formId);
+        if (!form.checkValidity()) {
+            return false;
+        }
+
+        const validUntil = new Date(form.valid_until.value);
+        const today = new Date();
+        if (validUntil < today) {
+            alert('Valid until date must be in the future');
+            return false;
+        }
+
+        return true;
+    }
 </script>
 
 <?php include 'footer.php'; ?>

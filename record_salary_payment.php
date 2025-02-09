@@ -6,6 +6,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $employee_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $month = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
 
@@ -55,14 +60,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'paid', '$notes'
                     )";
         }
-        
+
         Database::iud($query);
         Database::$connection->commit();
-        
+
         $_SESSION['success'] = "Salary payment recorded successfully.";
         header("Location: view_employee.php?id=$employee_id");
         exit();
-
     } catch (Exception $e) {
         Database::$connection->rollback();
         $error = "Error recording payment: " . $e->getMessage();
@@ -128,82 +132,83 @@ include 'header.php';
 ?>
 
 <div class="container content">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card">
-                <div class="card-header">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <h3>Record Salary Payment</h3>
-                            <p class="mb-0">Employee: <?php echo $employee['name']; ?></p>
-                            <p class="mb-0">Month: <?php echo date('F Y', strtotime($month)); ?></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <?php if (isset($error)): ?>
+    <div class="row align-items-center">
+        <div class="col">
+            <h3>Record Salary Payment</h3>
+            <p class="mb-0">Employee: <?php echo $employee['name']; ?></p>
+            <p class="mb-0">Month: <?php echo date('F Y', strtotime($month)); ?></p>
+        </div>
+        <div class="col-md-6 text-end">
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Employee
+            </button>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="card">
+            <div class="card-body">
+                <?php if (isset($error)): ?>
                     <div class="alert alert-danger"><?php echo $error; ?></div>
-                    <?php endif; ?>
+                <?php endif; ?>
 
-                    <div class="card bg-light mb-4">
-                        <div class="card-body">
-                            <h5>Salary Summary</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p class="mb-1">Full Days: <?php echo $total_days; ?></p>
-                                    <p class="mb-1">Half Days: <?php echo $total_half_days; ?></p>
-                                    <p class="mb-1">Absents: <?php echo $total_absents; ?></p>
-                                    <p class="mb-1">Leaves: <?php echo $total_leaves; ?></p>
-                                    <p class="mb-1">Total Working Hours: <?php echo number_format($total_working_hours, 2); ?></p>
-                                    <p class="mb-1">Total OT Hours: <?php echo formatOTHours($total_ot_hours); ?></p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p class="mb-1">Day Rate: <?php echo formatCurrency($employee['day_rate']); ?></p>
-                                    <p class="mb-1">OT Rate: <?php echo formatCurrency($employee['overtime_rate']); ?> per hour</p>
-                                    <p class="mb-1">Regular Amount: <?php echo formatCurrency($regular_amount); ?></p>
-                                    <p class="mb-1">OT Amount: <?php echo formatCurrency($ot_amount); ?></p>
-                                    <h5 class="mt-2">Total Amount: <?php echo formatCurrency($total_amount); ?></h5>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <form method="POST" id="payment-form">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5>Salary Summary</h5>
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    <label class="required">Regular Amount</label>
-                                    <input type="number" name="regular_amount" class="form-control" required 
-                                           step="0.01" min="0" value="<?php echo $regular_amount; ?>">
-                                </div>
+                                <p class="mb-1">Full Days: <?php echo $total_days; ?></p>
+                                <p class="mb-1">Half Days: <?php echo $total_half_days; ?></p>
+                                <p class="mb-1">Absents: <?php echo $total_absents; ?></p>
+                                <p class="mb-1">Leaves: <?php echo $total_leaves; ?></p>
+                                <p class="mb-1">Total Working Hours: <?php echo number_format($total_working_hours, 2); ?></p>
+                                <p class="mb-1">Total OT Hours: <?php echo formatOTHours($total_ot_hours); ?></p>
                             </div>
                             <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    <label class="required">OT Amount</label>
-                                    <input type="number" name="ot_amount" class="form-control" required 
-                                           step="0.01" min="0" value="<?php echo $ot_amount; ?>">
-                                </div>
+                                <p class="mb-1">Day Rate: <?php echo formatCurrency($employee['day_rate']); ?></p>
+                                <p class="mb-1">OT Rate: <?php echo formatCurrency($employee['overtime_rate']); ?> per hour</p>
+                                <p class="mb-1">Regular Amount: <?php echo formatCurrency($regular_amount); ?></p>
+                                <p class="mb-1">OT Amount: <?php echo formatCurrency($ot_amount); ?></p>
+                                <h5 class="mt-2">Total Amount: <?php echo formatCurrency($total_amount); ?></h5>
                             </div>
                         </div>
-
-                        <div class="form-group mb-3">
-                            <label class="required">Payment Date</label>
-                            <input type="date" name="payment_date" class="form-control" required 
-                                   value="<?php echo date('Y-m-d'); ?>"
-                                   max="<?php echo date('Y-m-d'); ?>">
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label>Notes</label>
-                            <textarea name="notes" class="form-control" rows="3"><?php echo $existing_payment['notes'] ?? ''; ?></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary">Record Payment</button>
-                            <a href="view_employee.php?id=<?php echo $employee_id; ?>" class="btn btn-secondary">Cancel</a>
-                        </div>
-                    </form>
+                    </div>
                 </div>
+
+                <form method="POST" id="payment-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="required">Regular Amount</label>
+                                <input type="number" name="regular_amount" class="form-control" required
+                                    step="0.01" min="0" value="<?php echo $regular_amount; ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="required">OT Amount</label>
+                                <input type="number" name="ot_amount" class="form-control" required
+                                    step="0.01" min="0" value="<?php echo $ot_amount; ?>">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="required">Payment Date</label>
+                        <input type="date" name="payment_date" class="form-control" required
+                            value="<?php echo date('Y-m-d'); ?>"
+                            max="<?php echo date('Y-m-d'); ?>">
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label>Notes</label>
+                        <textarea name="notes" class="form-control" rows="3"><?php echo $existing_payment['notes'] ?? ''; ?></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Record Payment</button>
+                        <a href="view_employee.php?id=<?php echo $employee_id; ?>" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

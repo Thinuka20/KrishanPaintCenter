@@ -7,6 +7,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 include 'header.php';
 ?>
 
@@ -59,20 +64,20 @@ include 'header.php';
                             <td class="action-buttons">
                                 <a href="view_employee.php?id=<?php echo $row['id']; ?>" 
                                    class="btn btn-sm btn-info">
-                                    <i class="fas fa-eye"></i>
+                                    <i class="fas fa-eye text-light"></i>
                                 </a>
                                 <a href="edit_employee.php?id=<?php echo $row['id']; ?>" 
                                    class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i>
+                                    <i class="fas fa-edit text-light"></i>
                                 </a>
                                 <a href="salary_calculation.php?id=<?php echo $row['id']; ?>" 
                                    class="btn btn-sm btn-success">
-                                    <i class="fas fa-calculator"></i>
+                                    <i class="fas fa-calculator text-light"></i>
                                 </a>
                                 <a href="delete_employee.php?id=<?php echo $row['id']; ?>" 
                                    class="btn btn-sm btn-danger"
                                    onclick="return confirmDelete();">
-                                    <i class="fas fa-trash"></i>
+                                    <i class="fas fa-trash text-light"></i>
                                 </a>
                             </td>
                         </tr>

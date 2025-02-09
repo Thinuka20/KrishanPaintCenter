@@ -1,6 +1,14 @@
 <?php
 require_once 'connection.php';
 session_start();
+
+checkLogin();
+
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 Database::connection();
 
 try {
@@ -8,13 +16,17 @@ try {
 
     $invoice_id = $_POST['invoice_id'];
     $vehicle_id = $_POST['vehicle_id'];
-
-    // Update invoice
+    
+    // Parse cart items
+    $cart_items = json_decode($_POST['cart_items'], true);
+    
+    // Calculate total amount
     $total_amount = 0;
-    foreach ($_POST['items']['price'] as $price) {
-        $total_amount += floatval($price);
+    foreach ($cart_items as $item) {
+        $total_amount += floatval($item['price']);
     }
 
+    // Update invoice
     $query = "UPDATE repair_invoices 
               SET vehicle_id = '$vehicle_id', total_amount = '$total_amount' 
               WHERE id = '$invoice_id'";
@@ -25,16 +37,16 @@ try {
     Database::iud($query);
 
     // Insert updated items
-    foreach ($_POST['items']['description'] as $key => $description) {
-        $price = $_POST['items']['price'][$key];
-        $description = Database::$connection->real_escape_string($description);
-
+    foreach ($cart_items as $item) {
+        $description = Database::$connection->real_escape_string($item['description']);
+        $price = floatval($item['price']);
+        
         $query = "INSERT INTO repair_invoice_items (repair_invoice_id, description, price) 
-                  VALUES ('$invoice_id', '$description', '$price')";
+                  VALUES ('$invoice_id', '$description', $price)";
         Database::iud($query);
     }
 
-    // Handle new photos
+    // Handle file uploads
     if (!empty($_FILES['repair_photos']['name'][0])) {
         $uploadDir = 'uploads/repairs/';
         if (!file_exists($uploadDir)) {
@@ -62,3 +74,4 @@ try {
 }
 
 header("Location: view_repair_invoice.php?id=$invoice_id");
+exit();

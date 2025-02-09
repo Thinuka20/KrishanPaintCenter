@@ -6,6 +6,11 @@ require_once 'auth.php';
 require_once 'connection.php';
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 // Get filter parameters
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
@@ -41,9 +46,9 @@ include 'header.php';
             <a href="export_attendance_pdf.php?<?php echo $_SERVER['QUERY_STRING']; ?>" class="btn btn-danger" target="_blank">
                 <i class="fas fa-file-pdf"></i> Export as PDF
             </a>
-            <a href="attendance.php" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back
-            </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Attendance
+            </button>
         </div>
     </div>
 
@@ -124,7 +129,7 @@ include 'header.php';
                     <tfoot>
                         <!-- Summary Section -->
                         <tr>
-                            <td colspan="9" class="bg-light"><strong>Summary</strong></td>
+                            <td colspan="9"><strong>Summary</strong></td>
                         </tr>
                         <?php foreach ($employee_totals as $employee => $totals): ?>
                             <tr>

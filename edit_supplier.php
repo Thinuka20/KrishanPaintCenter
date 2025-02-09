@@ -7,6 +7,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $supplier_id = (int)$_GET['id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -37,10 +42,17 @@ include 'header.php';
 ?>
 
 <div class="container content">
-    <div class="card">
-        <div class="card-header">
-            <h3>Edit Supplier</h3>
+<div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Edit Supplier</h2>
         </div>
+        <div class="col-md-6 text-end">
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Supplier
+            </button>
+        </div>
+    </div>
+    <div class="card">
         <div class="card-body">
             <form method="POST" id="supplier-form" onsubmit="return validateForm('supplier-form')">
                 <div class="row">

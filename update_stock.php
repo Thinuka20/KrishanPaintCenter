@@ -7,6 +7,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $item_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -44,38 +49,43 @@ include 'header.php';
 ?>
 
 <div class="container content">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Update Stock - <?php echo $item['name']; ?></h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Items
+            </button>
+        </div>
+    </div>
     <div class="row">
-        <div class="col-md-6 offset-md-3">
-            <div class="card">
-                <div class="card-header">
-                    <h3>Update Stock - <?php echo $item['name']; ?></h3>
-                </div>
-                <div class="card-body">
-                    <form method="POST">
-                        <div class="form-group">
-                            <label>Current Stock</label>
-                            <input type="text" class="form-control" value="<?php echo $item['stock_quantity']; ?>" readonly>
-                        </div>
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group">
+                        <label>Current Stock</label>
+                        <input type="text" class="form-control" value="<?php echo $item['stock_quantity']; ?>" readonly>
+                    </div>
 
-                        <div class="form-group">
-                            <label class="required">Quantity</label>
-                            <input type="number" name="quantity" class="form-control" required min="1">
-                        </div>
+                    <div class="form-group">
+                        <label class="required">Quantity</label>
+                        <input type="number" name="quantity" class="form-control" required min="1">
+                    </div>
 
-                        <div class="form-group">
-                            <label class="required">Operation</label>
-                            <select name="operation" class="form-control" required>
-                                <option value="add">Add Stock</option>
-                                <option value="subtract">Remove Stock</option>
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label class="required">Operation</label>
+                        <select name="operation" class="form-control" required>
+                            <option value="add">Add Stock</option>
+                            <option value="subtract">Remove Stock</option>
+                        </select>
+                    </div>
 
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary">Update Stock</button>
-                            <a href="items.php" class="btn btn-secondary">Cancel</a>
-                        </div>
-                    </form>
-                </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Update Stock</button>
+                        <a href="items.php" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

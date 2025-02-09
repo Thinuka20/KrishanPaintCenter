@@ -6,6 +6,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $today = date('Y-m-d');
 
 // At the beginning of mark_attendance.php after checkLogin();
@@ -128,9 +133,9 @@ include 'header.php';
             <h2>Mark Attendance</h2>
         </div>
         <div class="col-md-6 text-end">
-            <a href="attendance.php" class="btn btn-secondary">
+            <button onclick="history.back()" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Attendance
-            </a>
+            </button>
         </div>
     </div>
 

@@ -6,6 +6,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $current_date = date('Y-m-d');
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
@@ -26,9 +31,9 @@ include 'header.php';
             <a href="preview_attendance.php?<?php echo $_SERVER['QUERY_STRING']; ?>" class="btn btn-success">
                 <i class="fas fa-file-alt"></i> Preview Report
             </a>
-            <a href="employees.php" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Employee Management
-            </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Employee
+            </button>
         </div>
     </div>
 
@@ -121,7 +126,7 @@ include 'header.php';
                                 <td><?php echo $row['employee_name']; ?></td>
                                 <td><?php echo $row['time_in'] ? date('H:i', strtotime($row['time_in'])) : '-'; ?></td>
                                 <td><?php echo $row['time_out'] ? date('H:i', strtotime($row['time_out'])) : '-'; ?></td>
-                                <td><?php echo $row['ot_hours'] > 0 ? formatOTHours($row['ot_hours']): '-'; ?></td>
+                                <td><?php echo $row['ot_hours'] > 0 ? formatOTHours($row['ot_hours']) : '-'; ?></td>
                                 <td>
                                     <span class="badge bg-<?php echo
                                                             $row['status'] === 'present' ? 'success' : ($row['status'] === 'absent' ? 'danger' : ($row['status'] === 'half-day' ? 'warning' : 'info')); ?>">
@@ -132,14 +137,18 @@ include 'header.php';
                                     <?php if ($row['attendance_date'] === $current_date): ?>
                                         <a href="mark_attendance.php?edit=<?php echo $row['id']; ?>"
                                             class="btn btn-sm btn-primary">
-                                            <i class="fas fa-edit"></i>
+                                            <i class="fas fa-edit text-light"></i>
                                         </a>
+                                        <button type="button" class="btn btn-sm btn-danger"
+                                            onclick="confirmDeleteAttendance(<?php echo $row['id']; ?>)">
+                                            <i class="fas fa-trash text-light"></i>
+                                        </button>
                                     <?php endif; ?>
 
                                     <?php if ($row['notes']): ?>
                                         <button type="button" class="btn btn-sm btn-info"
                                             data-bs-toggle="tooltip" title="<?php echo htmlspecialchars($row['notes']); ?>">
-                                            <i class="fas fa-sticky-note"></i>
+                                            <i class="fas fa-sticky-note text-light"></i>
                                         </button>
                                     <?php endif; ?>
                                 </td>
@@ -153,6 +162,42 @@ include 'header.php';
 </div>
 
 <script>
+    function confirmDeleteAttendance(attendanceId) {
+        if (confirm('Are you sure you want to delete this attendance record?')) {
+            $.ajax({
+                url: 'delete_attendance.php',
+                type: 'POST',
+                data: {
+                    attendance_id: attendanceId
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        // Show success message
+                        const alertDiv = $('<div>')
+                            .addClass('alert alert-success alert-dismissible fade show')
+                            .attr('role', 'alert')
+                            .text(response.message)
+                            .append('<button type="button" class="btn-close" data-bs-dismiss="alert"></button>');
+
+                        $('.container.content').prepend(alertDiv);
+
+                        // Remove the deleted row
+                        $(`button[onclick="confirmDelete(${attendanceId})"]`).closest('tr').remove();
+                        location.reload();
+
+                    } else {
+                        alert(response.message || 'Error deleting record');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Error deleting record. Please try again.');
+                    console.error('Delete error:', error);
+                }
+            });
+        }
+    }
+
     function exportAttendance() {
         // Create export URL with current filters
         const params = new URLSearchParams(window.location.search);

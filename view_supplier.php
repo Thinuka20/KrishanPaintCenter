@@ -6,6 +6,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $supplier_id = (int)$_GET['id'];
 
 // Get supplier details
@@ -32,14 +37,14 @@ include 'header.php';
         </div>
         <div class="col-md-6 text-end">
             <a href="supplier_transactions.php?id=<?php echo $supplier_id; ?>" class="btn btn-success">
-                <i class="fas fa-exchange-alt"></i> Add Transaction
+                <i class="fas fa-exchange-alt"></i> Supplier Transactions
             </a>
             <a href="edit_supplier.php?id=<?php echo $supplier_id; ?>" class="btn btn-primary">
                 <i class="fas fa-edit"></i> Edit Details
             </a>
-            <a href="suppliers.php" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back
-            </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Supplier
+            </button>
         </div>
     </div>
 
@@ -123,7 +128,6 @@ include 'header.php';
                             <th>Date</th>
                             <th>Type</th>
                             <th>Amount</th>
-                            <th>Running Balance</th>
                             <th>Description</th>
                         </tr>
                     </thead>
@@ -137,11 +141,6 @@ include 'header.php';
                         $running_balance = 0;
                         while ($transaction = $result->fetch_assoc()):
                             $amount = $transaction['amount'];
-                            if ($transaction['transaction_type'] === 'credit') {
-                                $running_balance += $amount;
-                            } else {
-                                $running_balance -= $amount;
-                            }
                         ?>
                         <tr>
                             <td><?php echo date('Y-m-d', strtotime($transaction['transaction_date'])); ?></td>
@@ -151,10 +150,6 @@ include 'header.php';
                                 </span>
                             </td>
                             <td><?php echo formatCurrency($amount); ?></td>
-                            <td class="<?php echo $running_balance >= 0 ? 'text-success' : 'text-danger'; ?>">
-                                <?php echo formatCurrency(abs($running_balance)); ?>
-                                <?php echo $running_balance >= 0 ? ' CR' : ' DR'; ?>
-                            </td>
                             <td><?php echo $transaction['description']; ?></td>
                         </tr>
                         <?php endwhile; ?>

@@ -5,6 +5,11 @@ require_once 'auth.php';
 require_once 'connection.php';
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 // Check if user is admin
 $query = "SELECT role FROM users WHERE id = " . $_SESSION['user_id'];
 $result = Database::search($query);
@@ -226,10 +231,10 @@ include 'header.php';
                             <div class="theme-option">
                                 <input type="radio" class="btn-check" name="theme" id="light-theme"
                                     value="light" <?php echo ($settings['theme'] ?? 'light') === 'light' ? 'checked' : ''; ?>>
-                                <label class="btn btn-outline-primary theme-preview" for="light-theme">
+                                <label class="btn btn-outline-secondary theme-preview" for="light-theme">
                                     <div class="theme-sample bg-light">
-                                        <div class="theme-sample-header bg-primary"></div>
-                                        <div class="theme-sample-sidebar bg-dark"></div>
+                                        <div class="theme-sample-header bg-secondary"></div>
+                                        <div class="theme-sample-sidebar bg-secondary"></div>
                                     </div>
                                     Light
                                 </label>
@@ -239,9 +244,9 @@ include 'header.php';
                             <div class="theme-option">
                                 <input type="radio" class="btn-check" name="theme" id="dark-theme"
                                     value="dark" <?php echo ($settings['theme'] ?? '') === 'dark' ? 'checked' : ''; ?>>
-                                <label class="btn btn-outline-primary theme-preview" for="dark-theme">
+                                <label class="btn btn-outline-dark theme-preview" for="dark-theme">
                                     <div class="theme-sample bg-dark">
-                                        <div class="theme-sample-header bg-secondary"></div>
+                                        <div class="theme-sample-header bg-black"></div>
                                         <div class="theme-sample-sidebar bg-black"></div>
                                     </div>
                                     Dark
@@ -255,7 +260,7 @@ include 'header.php';
                                 <label class="btn btn-outline-primary theme-preview" for="blue-theme">
                                     <div class="theme-sample bg-light">
                                         <div class="theme-sample-header bg-primary"></div>
-                                        <div class="theme-sample-sidebar bg-info"></div>
+                                        <div class="theme-sample-sidebar bg-primary"></div>
                                     </div>
                                     Blue
                                 </label>
@@ -265,10 +270,10 @@ include 'header.php';
                             <div class="theme-option">
                                 <input type="radio" class="btn-check" name="theme" id="green-theme"
                                     value="green" <?php echo ($settings['theme'] ?? '') === 'green' ? 'checked' : ''; ?>>
-                                <label class="btn btn-outline-primary theme-preview" for="green-theme">
+                                <label class="btn btn-outline-success theme-preview" for="green-theme">
                                     <div class="theme-sample bg-light">
                                         <div class="theme-sample-header bg-success"></div>
-                                        <div class="theme-sample-sidebar bg-success text-white"></div>
+                                        <div class="theme-sample-sidebar bg-success"></div>
                                     </div>
                                     Green
                                 </label>

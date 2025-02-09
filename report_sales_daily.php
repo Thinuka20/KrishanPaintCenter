@@ -8,6 +8,11 @@ require_once 'classes/ReportPDF.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 // Get filter parameters
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
@@ -99,9 +104,12 @@ include 'header.php';
         </div>
         <div class="col-md-6 text-end">
             <a href="?start_date=<?php echo $start_date; ?>&end_date=<?php echo $end_date; ?>&export_pdf=1" 
-               class="btn btn-secondary">
-                <i class="fas fa-file-pdf"></i> Export PDF
+               class="btn btn-primary" target="_blank">
+               <i class="fas fa-print"></i> Print Report
             </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Reports
+            </button>
         </div>
     </div>
 

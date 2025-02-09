@@ -13,37 +13,79 @@ include 'header.php';
 
     <div class="row mb-3">
         <div class="col-md-6">
-            <h2>Create Repair Invoice</h2>
+            <h2>Create New Repair Invoice</h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Invoices
+            </button>
         </div>
     </div>
 
     <div class="card">
         <div class="card-body">
             <form id="invoiceForm" method="POST" action="process_repair_invoice.php" enctype="multipart/form-data">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label>Select Vehicle</label>
-                        <select class="form-select select2" id="vehicleSelect" name="vehicle_id" required>
-                            <option value="">Search vehicle...</option>
-                            <?php
-                            $query = "SELECT v.id, v.registration_number, v.make, v.model, c.name as customer_name 
-                      FROM vehicles v 
-                      JOIN customers c ON v.customer_id = c.id 
-                      ORDER BY v.registration_number";
-                            $result = Database::search($query);
-                            while ($row = $result->fetch_assoc()) {
-                                echo "<option value='" . $row['id'] . "' 
-                          data-make='" . $row['make'] . "' 
-                          data-model='" . $row['model'] . "' 
-                          data-customer='" . $row['customer_name'] . "'>"
-                                    . $row['registration_number'] . " - " . $row['make'] . " " . $row['model']
-                                    . "</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <div id="vehicleDetails"></div>
+            <div class="row mb-3">
+                    <!-- Main container with two columns -->
+                    <div class="row">
+                        <!-- Left Column: Vehicle Selection and Details -->
+                        <div class="col-md-6">
+                            <!-- Vehicle Selection -->
+                            <div class="mb-4">
+                                <label>Select Vehicle</label>
+                                <select class="form-select select2" id="vehicleSelect" name="vehicle_id" required>
+                                    <option value="">Search vehicle...</option>
+                                    <?php
+                                    $query = "SELECT v.id, v.registration_number, v.make, v.model, c.name as customer_name 
+                        FROM vehicles v 
+                        JOIN customers c ON v.customer_id = c.id 
+                        ORDER BY v.registration_number";
+                                    $result = Database::search($query);
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<option value='" . $row['id'] . "' 
+                        data-make='" . $row['make'] . "' 
+                        data-model='" . $row['model'] . "' 
+                        data-registration_number='" . $row['registration_number'] . "' 
+                        data-customer='" . $row['customer_name'] . "'>"
+                                            . $row['registration_number'] . " - " . $row['make'] . " " . $row['model']
+                                            . "</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+
+                            <!-- Vehicle Details -->
+                            <div id="vehicleDetails" class="mt-4"></div>
+                        </div>
+
+                        <!-- Right Column: Common Repair Descriptions -->
+                        <div class="col-md-6">
+                            <h6>Common Repair Descriptions</h6>
+                            <div style="height: 250px; overflow-y: auto; border: 1px solid #dee2e6;">
+                                <table class="table table-bordered mb-0">
+                                    <tbody>
+                                        <?php
+                                        $common_repairs = [
+                                            'Scanning',
+                                            'Repairing',
+                                            'Replacing'
+                                        ];
+
+                                        foreach ($common_repairs as $repair) {
+                                            echo "<tr>
+                                                    <td class='align-middle'>{$repair}</td>
+                                                    <td width='100' class='text-center'>
+                                                        <button type='button' class='btn btn-sm btn-primary copy-btn' data-text='{$repair}'>
+                                                            <i class='fas fa-copy'></i> Copy
+                                                        </button>
+                                                    </td>
+                                                </tr>";
+                                        }
+                                        ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -133,20 +175,21 @@ include 'header.php';
         $('.select2').select2({
             theme: 'bootstrap-5'
         });
+    });
 
-        $('#vehicleSelect').change(function() {
-            const selectedOption = $(this).find('option:selected');
-            if (selectedOption.val()) {
-                document.getElementById('vehicleDetails').innerHTML = `
+    $('#vehicleSelect').change(function() {
+        const selectedOption = $(this).find('option:selected');
+        if (selectedOption.val()) {
+            document.getElementById('vehicleDetails').innerHTML = `
                 <div class="card mt-2">
                     <div class="card-body">
                         <p><strong>Make:</strong> ${selectedOption.data('make')}</p>
                         <p><strong>Model:</strong> ${selectedOption.data('model')}</p>
+                        <p><strong>Registration Number:</strong> ${selectedOption.data('registration_number')}</p>
                         <p><strong>Customer:</strong> ${selectedOption.data('customer')}</p>
                     </div>
                 </div>`;
-            }
-        });
+        }
     });
 
     function addToCart() {
@@ -255,6 +298,21 @@ include 'header.php';
             }
             reader.readAsDataURL(file);
         }
+    });
+
+    $(document).ready(function() {
+        $('.copy-btn').click(function() {
+            const text = $(this).data('text');
+            $('#newDescription').val(text);
+            $(this).removeClass('btn-primary').addClass('btn-success')
+                .html('<i class="fas fa-check"></i> Copied');
+
+            // Reset button after 1 second
+            setTimeout(() => {
+                $(this).removeClass('btn-success').addClass('btn-primary')
+                    .html('<i class="fas fa-copy"></i> Copy');
+            }, 1000);
+        });
     });
 </script>
 

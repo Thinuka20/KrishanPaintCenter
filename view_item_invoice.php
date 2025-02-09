@@ -9,7 +9,10 @@ checkLogin();
 
 $invoice_id = (int)$_GET['id'];
 
-$query = "SELECT ii.*, c.name as customer_name, c.phone, c.email, c.address
+$query = "SELECT ii.*, c.name as customer_name, c.phone, c.email, c.address,
+                 (SELECT COALESCE(SUM(amount), 0) 
+                  FROM payment_transactions 
+                  WHERE invoice_type = 'item' AND invoice_id = ii.id) as paid_amount
           FROM item_invoices ii 
           LEFT JOIN customers c ON ii.customer_id = c.id 
           WHERE ii.id = $invoice_id";
@@ -20,20 +23,22 @@ include 'header.php';
 ?>
 
 <div class="container content">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Item Invoice #<?php echo $invoice['invoice_number']; ?></h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="print_item_invoice.php?id=<?php echo $invoice_id; ?>"
+                class="btn btn-primary" target="_blank">
+                <i class="fas fa-print"></i> Print Invoice
+            </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Invoices
+            </button>
+        </div>
+    </div>
     <div class="card">
         <div class="card-body">
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <h2>Item Invoice #<?php echo $invoice['invoice_number']; ?></h2>
-                </div>
-                <div class="col-md-6 text-end">
-                    <a href="print_item_invoice.php?id=<?php echo $invoice_id; ?>"
-                        class="btn btn-secondary" target="_blank">
-                        <i class="fas fa-print"></i> Print Invoice
-                    </a>
-                </div>
-            </div>
-
             <div class="row">
                 <div class="col-md-6">
                     <h4>Customer Information</h4>
@@ -79,7 +84,6 @@ include 'header.php';
                                     <tr>
                                         <td>
                                             <?php echo $item['item_name']; ?>
-                                            <small class="text-muted d-block">Code: <?php echo $item['item_code']; ?></small>
                                         </td>
                                         <td><?php echo $item['quantity']; ?></td>
                                         <td class="text-end"><?php echo formatCurrency($item['unit_price']); ?></td>
@@ -89,9 +93,21 @@ include 'header.php';
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="3" class="text-end"><strong>Total Amount:</strong></td>
+                                    <td colspan="3" class="text-end"><strong>Total Amount :</strong></td>
                                     <td class="text-end">
                                         <strong><?php echo formatCurrency($invoice['total_amount']); ?></strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Paid Amount :</strong></td>
+                                    <td class="text-end">
+                                        <strong><?php echo formatCurrency($invoice['paid_amount']); ?></strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Due Payment :</strong></td>
+                                    <td class="text-end">
+                                        <strong><?php echo formatCurrency($invoice['total_amount'] - $invoice['paid_amount']); ?></strong>
                                     </td>
                                 </tr>
                             </tfoot>
@@ -108,45 +124,6 @@ include 'header.php';
                     </div>
                 </div>
             <?php endif; ?>
-
-            <?php if ($invoice['payment_status'] !== 'paid'): ?>
-                <a href="#" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#paymentModal">
-                    <i class="fas fa-money-bill"></i> Add Payment
-                </a>
-            <?php endif; ?>
-
-            <!-- Payment History -->
-            <div class="row mt-4">
-                <div class="col-md-12">
-                    <h4>Payment History</h4>
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Amount</th>
-                                    <th>Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php
-                                $query = "SELECT * FROM payment_transactions 
-                                         WHERE invoice_type = 'item' AND invoice_id = $invoice_id 
-                                         ORDER BY payment_date DESC";
-                                $result = Database::search($query);
-                                while ($payment = $result->fetch_assoc()):
-                                ?>
-                                    <tr>
-                                        <td><?php echo date('Y-m-d', strtotime($payment['payment_date'])); ?></td>
-                                        <td><?php echo formatCurrency($payment['amount']); ?></td>
-                                        <td><?php echo $payment['notes']; ?></td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>

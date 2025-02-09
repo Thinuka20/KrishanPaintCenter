@@ -7,6 +7,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $supplier_id = (int)$_GET['id'];
 
 // Get supplier details
@@ -19,11 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $amount = (float)$_POST['amount'];
     $description = validateInput($_POST['description']);
     $transaction_date = validateInput($_POST['transaction_date']);
-    
+
     $query = "INSERT INTO supplier_transactions 
               (supplier_id, transaction_type, amount, description, transaction_date) 
               VALUES ($supplier_id, '$transaction_type', $amount, '$description', '$transaction_date')";
-    
+
     Database::iud($query);
     header("Location: supplier_transactions.php?id=$supplier_id");
     exit();
@@ -38,9 +43,12 @@ include 'header.php';
             <h2>Supplier Transactions - <?php echo $supplier['name']; ?></h2>
         </div>
         <div class="col-md-6 text-end">
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" 
-                    data-bs-target="#addTransactionModal">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                data-bs-target="#addTransactionModal">
                 <i class="fas fa-plus"></i> Add Transaction
+            </button>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Supplier
             </button>
         </div>
     </div>
@@ -85,25 +93,25 @@ include 'header.php';
                         $result = Database::search($query);
                         $running_balance = 0;
                         while ($row = $result->fetch_assoc()):
-                            $amount = $row['transaction_type'] === 'credit' ? 
-                                     $row['amount'] : -$row['amount'];
+                            $amount = $row['transaction_type'] === 'credit' ?
+                                $row['amount'] : -$row['amount'];
                             $running_balance += $amount;
                         ?>
-                        <tr>
-                            <td><?php echo date('Y-m-d', strtotime($row['transaction_date'])); ?></td>
-                            <td>
-                                <span class="badge bg-<?php echo $row['transaction_type'] === 'credit' ? 
-                                                           'success' : 'danger'; ?>">
-                                    <?php echo ucfirst($row['transaction_type']); ?>
-                                </span>
-                            </td>
-                            <td><?php echo formatCurrency($row['amount']); ?></td>
-                            <td><?php echo $row['description']; ?></td>
-                            <td class="<?php echo $running_balance < 0 ? 'text-danger' : 'text-success'; ?>">
-                                <?php echo formatCurrency(abs($running_balance)); ?>
-                                <?php echo $running_balance < 0 ? ' (Due)' : ' (Credit)'; ?>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td><?php echo date('Y-m-d', strtotime($row['transaction_date'])); ?></td>
+                                <td>
+                                    <span class="badge bg-<?php echo $row['transaction_type'] === 'credit' ?
+                                                                'success' : 'danger'; ?>">
+                                        <?php echo ucfirst($row['transaction_type']); ?>
+                                    </span>
+                                </td>
+                                <td><?php echo formatCurrency($row['amount']); ?></td>
+                                <td><?php echo $row['description']; ?></td>
+                                <td class="<?php echo $running_balance < 0 ? 'text-danger' : 'text-success'; ?>">
+                                    <?php echo formatCurrency(abs($running_balance)); ?>
+                                    <?php echo $running_balance < 0 ? ' (Due)' : ' (Credit)'; ?>
+                                </td>
+                            </tr>
                         <?php endwhile; ?>
                     </tbody>
                 </table>
@@ -129,18 +137,18 @@ include 'header.php';
                             <option value="debit">Debit (Supplier Receives)</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="required">Amount</label>
                         <input type="number" name="amount" class="form-control" required step="0.01" min="0">
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="required">Date</label>
-                        <input type="date" name="transaction_date" class="form-control" 
-                               required value="<?php echo date('Y-m-d'); ?>">
+                        <input type="date" name="transaction_date" class="form-control"
+                            required value="<?php echo date('Y-m-d'); ?>">
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Description</label>
                         <textarea name="description" class="form-control" rows="3"></textarea>

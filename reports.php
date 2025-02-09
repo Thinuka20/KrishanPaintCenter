@@ -7,6 +7,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 include 'header.php';
 ?>
 
@@ -75,11 +80,6 @@ include 'header.php';
                         <li class="mb-2">
                             <a href="report_stock_status.php" class="btn btn-info w-100">
                                 Stock Status Report
-                            </a>
-                        </li>
-                        <li class="mb-2">
-                            <a href="report_low_stock.php" class="btn btn-info w-100">
-                                Low Stock Alert
                             </a>
                         </li>
                         <li>

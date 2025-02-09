@@ -24,6 +24,8 @@ $invoice = $result->fetch_assoc();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice #<?php echo $invoice['invoice_number']; ?> - Krishan Paint Center</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
     <style>
         @media print {
             body {
@@ -74,22 +76,17 @@ $invoice = $result->fetch_assoc();
     <div class="p-3">
         <div class="invoice-header">
             <div class="row">
-            <div class="col-6 text-start">
-                    <h6>Bill To:</h6>
-                    <p class="mb-1"><strong>Name:</strong> <?php echo $invoice['customer_name']; ?></p>
-                    <p class="mb-1"><strong>Phone:</strong> <?php echo $invoice['phone']; ?></p>
-                    <p class="mb-1"><strong>Email:</strong> <?php echo $invoice['email']; ?></p>
-                    <p class="mb-1"><strong>Address:</strong> <?php echo $invoice['address']; ?></p>
-                </div>
-                <div class="col-6 text-end">
-                    <h6>INVOICE</h6>
-                    <p class="mb-1"><strong>Invoice #:</strong> <?php echo $invoice['invoice_number']; ?></p>
-                    <p class="mb-1"><strong>Date:</strong> <?php echo date('Y-m-d', strtotime($invoice['invoice_date'])); ?></p>
-                    <p><strong>Status:</strong>
-                        <span class="badge bg-<?php echo $invoice['payment_status'] === 'paid' ? 'success' : ($invoice['payment_status'] === 'partial' ? 'warning' : 'danger'); ?>">
-                            <?php echo ucfirst($invoice['payment_status']); ?>
-                        </span>
-                    </p>
+                <div class="col-12">
+                    <h5 class="text-center">ITEM INVOICE</h5>
+                    <div class="row">
+                        <div class="col-6 text-start">
+                            <p class="mb-1"><strong>Invoice No.:</strong> <?php echo $invoice['invoice_number']; ?></p>
+                        </div>
+                        <div class="col-6 text-end">
+                            <p class="mb-1"><strong>Date:</strong> <?php echo date('Y-m-d', strtotime($invoice['invoice_date'])); ?></p>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -98,7 +95,7 @@ $invoice = $result->fetch_assoc();
 
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive mb-5">
             <table class="table table-bordered">
                 <thead>
                     <tr>
@@ -134,49 +131,31 @@ $invoice = $result->fetch_assoc();
                             <strong><?php echo formatCurrency($invoice['total_amount']); ?></strong>
                         </td>
                     </tr>
-                </tfoot>
-            </table>
-        </div>
-
-        <div class="row mt-4">
-            <div class="col-6"></div>
-            <div class="col-6">
-                <h6 class="text-end">Payment Information</h6>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th class="text-end">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $query = "SELECT * FROM payment_transactions 
+                    <?php
+                    $query = "SELECT * FROM payment_transactions 
                          WHERE invoice_type = 'item' AND invoice_id = $invoice_id 
                          ORDER BY payment_date";
-                        $result = Database::search($query);
-                        $total_paid = 0;
-                        while ($payment = $result->fetch_assoc()):
-                            $total_paid += $payment['amount'];
-                        ?>
-                            <tr>
-                                <td><?php echo date('Y-m-d', strtotime($payment['payment_date'])); ?></td>
-                                <td class="text-end"><?php echo formatCurrency($payment['amount']); ?></td>
-                            </tr>
-                        <?php endwhile; ?>
-                    </tbody>
-                    <tfoot>
+                    $result = Database::search($query);
+                    $total_paid = 0;
+                    while ($payment = $result->fetch_assoc()):
+                        $total_paid += $payment['amount'];
+                    endwhile; ?>
+                    <tr>
+                        <th colspan="3" class="text-end">Total Paid:</th>
+                        <th class="text-end"><?php echo formatCurrency($total_paid); ?></th>
+                    </tr>
+                    <?php
+                    if ($total_paid != $invoice['total_amount']) {
+                    ?>
                         <tr>
-                            <th colspan="1" class="text-end">Total Paid:</th>
-                            <th class="text-end"><?php echo formatCurrency($total_paid); ?></th>
-                        </tr>
-                        <tr>
-                            <th colspan="1" class="text-end">Balance Due:</th>
+                            <th colspan="3" class="text-end">Balance Due:</th>
                             <th class="text-end"><?php echo formatCurrency($invoice['total_amount'] - $total_paid); ?></th>
                         </tr>
-                    </tfoot>
-                </table>
-            </div>
+                    <?php
+                    }
+                    ?>
+                </tfoot>
+            </table>
         </div>
 
         <?php if (!empty($invoice['notes'])): ?>
@@ -190,22 +169,17 @@ $invoice = $result->fetch_assoc();
             </div>
         <?php endif; ?>
 
-        <div class="invoice-footer mt-5">
+        <!-- Signature Section -->
+        <div class="mt-3">
+            <p class="mb-0">....................................................</p>
+            <p class="mb-0 fw-bold">W.Krishan Shyamal</p>
+            <p class="mb-1">Proprietor</p>
+        </div>
+
+        <div class="invoice-footer mt-2">
             <div class="row">
                 <div class="col-12 text-center">
                     <p class="mb-4">Thank you for your business!</p>
-                    <div class="row mt-5">
-                        <div class="col-6">
-                            <div class="border-top pt-2">
-                                <p class="mb-0">Customer Signature</p>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="border-top pt-2">
-                                <p class="mb-0">Authorized Signature</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

@@ -7,6 +7,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $customer_id = (int)$_GET['id'];
 
 // Get customer details
@@ -49,9 +54,9 @@ include 'header.php';
             <a href="add_vehicle.php?customer_id=<?php echo $customer_id; ?>" class="btn btn-success">
                 <i class="fas fa-car"></i> Add Vehicle
             </a>
-            <a href="customers.php" class="btn btn-secondary">
+            <button onclick="history.back()" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Customers
-            </a>
+            </button>
         </div>
     </div>
 
@@ -126,32 +131,32 @@ include 'header.php';
                                 $result = Database::search($query);
                                 while ($vehicle = $result->fetch_assoc()):
                                 ?>
-                                <tr>
-                                    <td><?php echo $vehicle['registration_number']; ?></td>
-                                    <td><?php echo $vehicle['make'] . ' ' . $vehicle['model']; ?></td>
-                                    <td><?php echo $vehicle['year']; ?></td>
-                                    <td>
-                                        <?php 
-                                        echo $vehicle['last_service'] ? 
-                                             date('Y-m-d', strtotime($vehicle['last_service'])) : 
-                                             'Never';
-                                        ?>
-                                    </td>
-                                    <td>
-                                        <a href="vehicle_history.php?id=<?php echo $vehicle['id']; ?>" 
-                                           class="btn btn-sm btn-info" title="Service History">
-                                            <i class="fas fa-history"></i>
-                                        </a>
-                                        <a href="add_repair_invoice.php?vehicle_id=<?php echo $vehicle['id']; ?>" 
-                                           class="btn btn-sm btn-success" title="New Repair">
-                                            <i class="fas fa-tools"></i>
-                                        </a>
-                                        <a href="edit_vehicle.php?id=<?php echo $vehicle['id']; ?>" 
-                                           class="btn btn-sm btn-primary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                    </td>
-                                </tr>
+                                    <tr>
+                                        <td><?php echo $vehicle['registration_number']; ?></td>
+                                        <td><?php echo $vehicle['make'] . ' ' . $vehicle['model']; ?></td>
+                                        <td><?php echo $vehicle['year']; ?></td>
+                                        <td>
+                                            <?php
+                                            echo $vehicle['last_service'] ?
+                                                date('Y-m-d', strtotime($vehicle['last_service'])) :
+                                                'Never';
+                                            ?>
+                                        </td>
+                                        <td>
+                                            <a href="vehicle_history.php?id=<?php echo $vehicle['id']; ?>"
+                                                class="btn btn-sm btn-info" title="Service History">
+                                                <i class="fas fa-history"></i>
+                                            </a>
+                                            <a href="add_repair_invoice.php?vehicle_id=<?php echo $vehicle['id']; ?>"
+                                                class="btn btn-sm btn-success" title="New Repair">
+                                                <i class="fas fa-tools"></i>
+                                            </a>
+                                            <a href="edit_vehicle.php?id=<?php echo $vehicle['id']; ?>"
+                                                class="btn btn-sm btn-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
                                 <?php endwhile; ?>
                             </tbody>
                         </table>
@@ -188,27 +193,27 @@ include 'header.php';
                                 $result = Database::search($query);
                                 while ($repair = $result->fetch_assoc()):
                                 ?>
-                                <tr>
-                                    <td><?php echo date('Y-m-d', strtotime($repair['invoice_date'])); ?></td>
-                                    <td><?php echo $repair['registration_number']; ?></td>
-                                    <td><?php echo $repair['invoice_number']; ?></td>
-                                    <td><?php echo formatCurrency($repair['total_amount']); ?></td>
-                                    <td>
-                                        <span class="badge bg-<?php echo getStatusColor($repair['payment_status']); ?>">
-                                            <?php echo ucfirst($repair['payment_status']); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a href="view_repair_invoice.php?id=<?php echo $repair['id']; ?>" 
-                                           class="btn btn-sm btn-info" title="View Invoice">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="print_repair_invoice.php?id=<?php echo $repair['id']; ?>" 
-                                           class="btn btn-sm btn-secondary" title="Print Invoice" target="_blank">
-                                            <i class="fas fa-print"></i>
-                                        </a>
-                                    </td>
-                                </tr>
+                                    <tr>
+                                        <td><?php echo date('Y-m-d', strtotime($repair['invoice_date'])); ?></td>
+                                        <td><?php echo $repair['registration_number']; ?></td>
+                                        <td><?php echo $repair['invoice_number']; ?></td>
+                                        <td><?php echo formatCurrency($repair['total_amount']); ?></td>
+                                        <td>
+                                            <span class="badge bg-<?php echo getStatusColor($repair['payment_status']); ?>">
+                                                <?php echo ucfirst($repair['payment_status']); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="view_repair_invoice.php?id=<?php echo $repair['id']; ?>"
+                                                class="btn btn-sm btn-info" title="View Invoice">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="print_repair_invoice.php?id=<?php echo $repair['id']; ?>"
+                                                class="btn btn-sm btn-secondary" title="Print Invoice" target="_blank">
+                                                <i class="fas fa-print"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
                                 <?php endwhile; ?>
                             </tbody>
                         </table>
@@ -221,7 +226,8 @@ include 'header.php';
 
 <?php
 // Helper function for payment status colors
-function getStatusColor($status) {
+function getStatusColor($status)
+{
     switch ($status) {
         case 'paid':
             return 'success';

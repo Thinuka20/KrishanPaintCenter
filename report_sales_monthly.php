@@ -8,6 +8,11 @@ require_once 'classes/ReportPDF.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $year = isset($_GET['year']) ? (int)$_GET['year'] : date('Y');
 $month = isset($_GET['month']) ? (int)$_GET['month'] : date('m');
 
@@ -17,7 +22,7 @@ if (isset($_GET['export_pdf'])) {
     $end_date = date('Y-m-t', strtotime($start_date));
     
     // Create new PDF instance
-    $pdf = new TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
+    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
 
     // Set document information
     $pdf->SetCreator('Krishan Paint Center');
@@ -33,7 +38,7 @@ if (isset($_GET['export_pdf'])) {
     $pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
 
     // Add a page
-    $pdf->AddPage('L', 'A4');
+    $pdf->AddPage('P', 'A4');
 
     // Set header
     $pdf->SetFont('helvetica', 'B', 16);
@@ -68,11 +73,11 @@ if (isset($_GET['export_pdf'])) {
     $repairs = $result->fetch_assoc();
 
     $query = "SELECT 
-                COUNT(DISTINCT ii.id) as invoices,
-                SUM(iid.quantity) as items,
-                SUM(ii.total_amount) as total
-              FROM item_invoices ii
-              LEFT JOIN item_invoice_details iid ON ii.id = iid.item_invoice_id
+    COUNT(DISTINCT ii.id) as invoices,
+    SUM(iid.quantity) as items,
+    SUM(iid.quantity * iid.unit_price) as total
+FROM item_invoices ii
+INNER JOIN item_invoice_details iid ON ii.id = iid.item_invoice_id
               WHERE ii.invoice_date BETWEEN '$start_date' AND '$end_date'";
     $result = Database::search($query);
     $items = $result->fetch_assoc();
@@ -92,7 +97,7 @@ if (isset($_GET['export_pdf'])) {
     $pdf->SetFillColor(240, 240, 240);
     
     $headers = array('Date', 'Repair Sales', 'Item Sales', 'Total Sales');
-    $widths = array(70, 60, 60, 60);
+    $widths = array(40, 50, 50, 50);
     
     foreach ($headers as $i => $header) {
         $pdf->Cell($widths[$i], 7, $header, 1, 0, 'C', true);
@@ -132,7 +137,7 @@ if (isset($_GET['export_pdf'])) {
         $daily_total = $repair_total + $item_total;
         
         if ($daily_total > 0) {
-            $pdf->Cell($widths[0], 6, date('Y-m-d (D)', strtotime($date)), 1);
+            $pdf->Cell($widths[0], 6, date('Y-m-d (D)', strtotime($date)), 1, 0, 'C');
             $pdf->Cell($widths[1], 6, formatCurrency($repair_total), 1, 0, 'R');
             $pdf->Cell($widths[2], 6, formatCurrency($item_total), 1, 0, 'R');
             $pdf->Cell($widths[3], 6, formatCurrency($daily_total), 1, 0, 'R');
@@ -143,61 +148,11 @@ if (isset($_GET['export_pdf'])) {
 
     // Table footer
     $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->Cell($widths[0], 7, 'Monthly Total', 1, 0, 'L');
+    $pdf->Cell($widths[0], 7, 'Monthly Total', 1, 0, 'R');
     $pdf->Cell($widths[1], 7, formatCurrency($repairs['total'] ?? 0), 1, 0, 'R');
     $pdf->Cell($widths[2], 7, formatCurrency($items['total'] ?? 0), 1, 0, 'R');
     $pdf->Cell($widths[3], 7, formatCurrency($total_sales), 1, 0, 'R');
     $pdf->Ln(15);
-
-    // Top 10 Items Table
-    $pdf->SetFont('helvetica', 'B', 12);
-    $pdf->Cell(0, 7, 'Top 10 Selling Items', 0, 1);
-    
-    // Table header
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->SetFillColor(240, 240, 240);
-    
-    $headers = array('Item', 'Quantity', 'Revenue');
-    $widths = array(120, 60, 70);
-    
-    foreach ($headers as $i => $header) {
-        $pdf->Cell($widths[$i], 7, $header, 1, 0, 'C', true);
-    }
-    $pdf->Ln();
-
-    // Table data
-    $pdf->SetFont('helvetica', '', 9);
-    
-    $query = "SELECT 
-                i.name,
-                SUM(iid.quantity) as total_quantity,
-                SUM(iid.quantity * iid.unit_price) as total_revenue
-            FROM item_invoice_details iid
-            LEFT JOIN items i ON iid.item_id = i.id
-            LEFT JOIN item_invoices ii ON iid.item_invoice_id = ii.id
-            WHERE ii.invoice_date BETWEEN '$start_date' AND '$end_date'
-            GROUP BY i.id
-            ORDER BY total_quantity DESC
-            LIMIT 10";
-    $result = Database::search($query);
-    
-    while ($row = $result->fetch_assoc()) {
-        $pdf->Cell($widths[0], 6, $row['name'], 1);
-        $pdf->Cell($widths[1], 6, $row['total_quantity'], 1, 0, 'R');
-        $pdf->Cell($widths[2], 6, formatCurrency($row['total_revenue']), 1, 0, 'R');
-        $pdf->Ln();
-    }
-
-    // Signature section
-    $pdf->Ln(20);
-    $pdf->SetFont('helvetica', '', 10);
-    $pdf->Cell(90, 6, '............................', 0, 0, 'C');
-    $pdf->Cell(90, 6, '............................', 0, 0, 'C');
-    $pdf->Cell(90, 6, '............................', 0, 0, 'C');
-    $pdf->Ln();
-    $pdf->Cell(90, 6, 'Prepared By', 0, 0, 'C');
-    $pdf->Cell(90, 6, 'Checked By', 0, 0, 'C');
-    $pdf->Cell(90, 6, 'Approved By', 0, 0, 'C');
 
     // Output PDF
     $pdf->Output('Monthly_Sales_Report_' . date('Y_m', strtotime($start_date)) . '.pdf', 'I');
@@ -214,9 +169,12 @@ include 'header.php';
         </div>
         <div class="col-md-6 text-end">
             <a href="?year=<?php echo $year; ?>&month=<?php echo $month; ?>&export_pdf=1" 
-               class="btn btn-secondary" target="_blank">
-                <i class="fas fa-file-pdf"></i> Export PDF
+               class="btn btn-primary" target="_blank">
+               <i class="fas fa-print"></i> Print Report
             </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Reports
+            </button>
         </div>
     </div>
 
@@ -305,11 +263,11 @@ include 'header.php';
                             <h5>Total Items Sold</h5>
                             <?php
                             $query = "SELECT 
-                                        COUNT(DISTINCT ii.id) as invoices,
-                                        SUM(iid.quantity) as items,
-                                        SUM(ii.total_amount) as total
-                                     FROM item_invoices ii
-                                     LEFT JOIN item_invoice_details iid ON ii.id = iid.item_invoice_id
+                            COUNT(DISTINCT ii.id) as invoices,
+                            SUM(iid.quantity) as items,
+                            SUM(iid.quantity * iid.unit_price) as total
+                          FROM item_invoices ii
+                          INNER JOIN item_invoice_details iid ON ii.id = iid.item_invoice_id
                                      WHERE ii.invoice_date BETWEEN '$start_date' AND '$end_date'";
                             $result = Database::search($query);
                             $items = $result->fetch_assoc();

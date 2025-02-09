@@ -6,6 +6,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $employee_id = (int)$_GET['id'];
 
 // Get employee details
@@ -45,9 +50,10 @@ include 'header.php';
             <a href="edit_employee.php?id=<?php echo $employee_id; ?>" class="btn btn-primary">
                 <i class="fas fa-edit"></i> Edit Details
             </a>
-            <a href="employees.php" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back
-            </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Employee
+            </button>
+
         </div>
     </div>
 
@@ -216,41 +222,43 @@ include 'header.php';
                     </thead>
                     <tbody>
                         <?php
-                        // Get last 6 months
-                        for ($i = 0; $i < 6; $i++) {
-                            $month = date('Y-m', strtotime("-$i months"));
-                            $start = date('Y-m-01', strtotime($month));
-                            $end = date('Y-m-t', strtotime($month));
+                        // Query to get salary payments with attendance summary
+                        $query = "SELECT 
+                        sp.*,
+                        COUNT(CASE WHEN ea.status = 'present' THEN 1 END) + 
+                        COUNT(CASE WHEN ea.status = 'half-day' THEN 0.5 END) as working_days,
+                        SUM(ea.ot_hours) as total_ot_hours
+                    FROM salary_payments sp
+                    LEFT JOIN employee_attendance ea ON sp.employee_id = ea.employee_id 
+                        AND DATE_FORMAT(ea.attendance_date, '%Y-%m') = DATE_FORMAT(sp.payment_month, '%Y-%m')
+                    WHERE sp.employee_id = $employee_id
+                    GROUP BY sp.id, DATE_FORMAT(sp.payment_month, '%Y-%m')
+                    ORDER BY sp.payment_month DESC";
 
-                            $query = "SELECT 
-                                        COUNT(CASE WHEN status = 'present' THEN 1 END) as present_days,
-                                        COUNT(CASE WHEN status = 'half-day' THEN 1 END) * 0.5 as half_days,
-                                        SUM(ot_hours) as ot_hours
-                                     FROM employee_attendance 
-                                     WHERE employee_id = $employee_id 
-                                     AND attendance_date BETWEEN '$start' AND '$end'";
-                            $result = Database::search($query);
-                            $summary = $result->fetch_assoc();
+                        $result = Database::search($query);
 
-                            $working_days = $summary['present_days'] + $summary['half_days'];
-                            $regular_amount = $working_days * $employee['day_rate'];
-                            $ot_amount = $summary['ot_hours'] * $employee['overtime_rate'];
-                            $total_amount = $regular_amount + $ot_amount;
+                        while ($payment = $result->fetch_assoc()) {
+                            $month = date('F Y', strtotime($payment['payment_month']));
                         ?>
                             <tr>
-                                <td><?php echo date('F Y', strtotime($month)); ?></td>
-                                <td><?php echo number_format($working_days, 1); ?></td>
-                                <td><?php echo formatOTHours($summary['ot_hours']); ?></td>
-
-                                <td><?php echo formatCurrency($regular_amount); ?></td>
-                                <td><?php echo formatCurrency($ot_amount); ?></td>
-                                <td><?php echo formatCurrency($total_amount); ?></td>
+                                <td><?php echo $month; ?></td>
+                                <td><?php echo number_format($payment['working_days'], 1); ?></td>
+                                <td><?php echo number_format($payment['total_ot_hours'], 1); ?></td>
+                                <td><?php echo formatCurrency($payment['regular_amount']); ?></td>
+                                <td><?php echo formatCurrency($payment['ot_amount']); ?></td>
+                                <td><?php echo formatCurrency($payment['total_amount']); ?></td>
                                 <td>
-                                    <a href="salary_calculation.php?id=<?php echo $employee_id; ?>&month=<?php echo $month; ?>"
-                                        class="btn btn-sm btn-info">
+                                    <a href="salary_calculation.php?id=<?php echo $employee_id; ?>&month=<?php echo date('Y-m', strtotime($payment['payment_month'])); ?>"
+                                        class="btn btn-sm btn-info" style="color: white;">
                                         <i class="fas fa-file-invoice-dollar"></i> View
                                     </a>
                                 </td>
+                            </tr>
+                        <?php } ?>
+
+                        <?php if ($result->num_rows == 0) { ?>
+                            <tr>
+                                <td colspan="7" class="text-center">No salary payment records found</td>
                             </tr>
                         <?php } ?>
                     </tbody>

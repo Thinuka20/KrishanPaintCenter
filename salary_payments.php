@@ -6,6 +6,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $month = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
 $start_date = date('Y-m-01', strtotime($month));
 $end_date = date('Y-m-t', strtotime($month));
@@ -38,9 +43,12 @@ include 'header.php';
             <h2>Salary Payments</h2>
         </div>
         <div class="col-md-6 text-end">
-            <a href="#" onclick="window.print()" class="btn btn-secondary">
+            <a href="#" onclick="window.print()" class="btn btn-primary">
                 <i class="fas fa-print"></i> Print Report
             </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Employee
+            </button>
         </div>
     </div>
 

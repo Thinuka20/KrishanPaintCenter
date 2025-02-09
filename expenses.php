@@ -7,6 +7,24 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
+// Set default dates to current month if no dates are specified
+$start = isset($_GET['start']) ? $_GET['start'] : date('Y-m-01');
+$end = isset($_GET['end']) ? $_GET['end'] : date('Y-m-t');
+
+// Handle date filtering
+$whereClause = "expense_date BETWEEN '$start' AND '$end'";
+
+// Handle category filtering
+if (isset($_GET['category']) && !empty($_GET['category'])) {
+    $category = $_GET['category'];
+    $whereClause .= " AND category = '$category'";
+}
+
 include 'header.php';
 ?>
 
@@ -25,13 +43,19 @@ include 'header.php';
     <div class="card">
         <div class="card-body">
             <div class="row mb-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="form-group">
-                        <label>Date Range</label>
-                        <input type="text" class="form-control date-range-picker" id="date-range">
+                        <label>Start Date</label>
+                        <input type="date" class="form-control" id="start-date">
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" class="form-control" id="end-date">
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <div class="form-group">
                         <label>Category</label>
                         <select class="form-control" id="category-filter">
@@ -41,14 +65,15 @@ include 'header.php';
                             $result = Database::search($query);
                             while ($row = $result->fetch_assoc()):
                             ?>
-                            <option value="<?php echo $row['category']; ?>">
+                            <option value="<?php echo $row['category']; ?>"
+                                    <?php echo (isset($_GET['category']) && $_GET['category'] == $row['category']) ? 'selected' : ''; ?>>
                                 <?php echo $row['category']; ?>
                             </option>
                             <?php endwhile; ?>
                         </select>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <button type="button" class="btn btn-primary mt-4" onclick="filterExpenses()">
                         <i class="fas fa-filter"></i> Filter
                     </button>
@@ -71,7 +96,7 @@ include 'header.php';
                     </thead>
                     <tbody>
                         <?php
-                        $query = "SELECT * FROM expenses ORDER BY expense_date DESC";
+                        $query = "SELECT * FROM expenses WHERE $whereClause ORDER BY expense_date DESC";
                         $result = Database::search($query);
                         while ($row = $result->fetch_assoc()):
                         ?>
@@ -99,7 +124,7 @@ include 'header.php';
                             <td colspan="3" class="text-end"><strong>Total:</strong></td>
                             <td colspan="2">
                                 <?php
-                                $query = "SELECT SUM(amount) as total FROM expenses";
+                                $query = "SELECT SUM(amount) as total FROM expenses WHERE $whereClause";
                                 $result = Database::search($query);
                                 $total = $result->fetch_assoc()['total'];
                                 echo formatCurrency($total);
@@ -115,21 +140,42 @@ include 'header.php';
 
 <script>
 function filterExpenses() {
-    const dateRange = document.getElementById('date-range').value;
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
     const category = document.getElementById('category-filter').value;
     
-    if (!dateRange) {
-        alert('Please select a date range');
+    if (!startDate || !endDate) {
+        alert('Please select both start and end dates');
         return;
     }
     
-    const [startDate, endDate] = dateRange.split(' - ');
+    if (new Date(startDate) > new Date(endDate)) {
+        alert('Start date cannot be later than end date');
+        return;
+    }
+    
     window.location.href = `expenses.php?start=${startDate}&end=${endDate}&category=${category}`;
 }
 
 function resetFilters() {
     window.location.href = 'expenses.php';
 }
+
+// Set initial values
+window.addEventListener('DOMContentLoaded', (event) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const today = new Date();
+    
+    // Set start date (first day of current month)
+    const startDate = urlParams.has('start') ? urlParams.get('start') : 
+        new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+    document.getElementById('start-date').value = startDate;
+    
+    // Set end date (last day of current month)
+    const endDate = urlParams.has('end') ? urlParams.get('end') : 
+        new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+    document.getElementById('end-date').value = endDate;
+});
 </script>
 
 <?php include 'footer.php'; ?>

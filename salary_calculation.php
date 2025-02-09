@@ -6,6 +6,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $employee_id = (int)$_GET['id'];
 $month = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
 
@@ -92,9 +97,9 @@ include 'header.php';
                 class="btn btn-secondary" target="_blank">
                 <i class="fas fa-file-pdf"></i> Print Salary Slip
             </a>
-            <a href="employees.php" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back
-            </a>
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Employee
+            </button>
         </div>
     </div>
 
@@ -134,6 +139,21 @@ include 'header.php';
                             <td><?php echo formatCurrency($employee['overtime_rate']); ?> per hour</td>
                         </tr>
                     </table>
+                    <h4>Salary Calculation</h4>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th width="200">Working Days Amount</th>
+                                    <td class="text-end"><?php echo formatCurrency($total_day_amount); ?></td>
+                                </tr>
+                                <tr>
+                                    <th>OT Amount</th>
+                                    <td class="text-end"><?php echo formatCurrency($total_ot_amount); ?></td>
+                                </tr>
+                                <tr class="table-primary">
+                                    <th>Total Salary</th>
+                                    <td class="text-end"><strong><?php echo formatCurrency($total_salary); ?></strong></td>
+                                </tr>
+                            </table>
                 </div>
                 <div class="col-md-6">
                     <h4>Attendance Summary</h4>
@@ -163,31 +183,6 @@ include 'header.php';
                             <td><?php echo formatOTHours($total_ot_hours); ?></td>
                         </tr>
                     </table>
-                </div>
-            </div>
-
-            <!-- Salary Calculation -->
-            <div class="row">
-                <div class="col-md-6 offset-md-6">
-                    <div class="card bg-light">
-                        <div class="card-body">
-                            <h4>Salary Calculation</h4>
-                            <table class="table table-bordered">
-                                <tr>
-                                    <th width="200">Working Days Amount</th>
-                                    <td class="text-end"><?php echo formatCurrency($total_day_amount); ?></td>
-                                </tr>
-                                <tr>
-                                    <th>OT Amount</th>
-                                    <td class="text-end"><?php echo formatCurrency($total_ot_amount); ?></td>
-                                </tr>
-                                <tr class="table-primary">
-                                    <th>Total Salary</th>
-                                    <td class="text-end"><strong><?php echo formatCurrency($total_salary); ?></strong></td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
                 </div>
             </div>
 

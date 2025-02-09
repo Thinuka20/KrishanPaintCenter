@@ -7,6 +7,11 @@ require_once 'connection.php';
 
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 $expense_id = (int)$_GET['id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -35,10 +40,17 @@ include 'header.php';
 ?>
 
 <div class="container content">
-    <div class="card">
-        <div class="card-header">
-            <h3>Edit Expense</h3>
+<div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Edit Expense</h2>
         </div>
+        <div class="col-md-6 text-end">
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Expense
+            </button>
+        </div>
+    </div>
+    <div class="card">
         <div class="card-body">
             <form method="POST" id="expense-form" onsubmit="return validateForm('expense-form')">
                 <div class="row">

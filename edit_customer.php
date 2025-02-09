@@ -63,114 +63,110 @@ include 'header.php';
 ?>
 
 <div class="container content">
+<div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Edit Customer</h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <button onclick="history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Customers
+            </button>
+        </div>
+    </div>
     <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card">
-                <div class="card-header">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <h3>Edit Customer</h3>
+        <div class="card">
+            <div class="card-body">
+                <?php if (isset($error)): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <?php echo $error; ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+
+                <form method="POST" onsubmit="return validateForm('edit-customer-form')" id="edit-customer-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="required">Name</label>
+                                <input type="text" name="name" class="form-control" required
+                                    value="<?php echo $customer['name']; ?>">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="required">Phone</label>
+                                <input type="tel" name="phone" class="form-control phone-input" required
+                                    value="<?php echo $customer['phone']; ?>"
+                                    pattern="[0-9]{10}">
+                                <small class="text-muted">Format: 0777123456</small>
+                            </div>
                         </div>
-                        <div class="col text-end">
-                            <a href="view_customer.php?id=<?php echo $customer_id; ?>" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left"></i> Back to Customer
-                            </a>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" name="email" class="form-control"
+                                    value="<?php echo $customer['email']; ?>">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Address</label>
+                                <textarea name="address" class="form-control" rows="3"><?php echo $customer['address']; ?></textarea>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="card-body">
-                    <?php if (isset($error)): ?>
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <?php echo $error; ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    <?php endif; ?>
 
-                    <form method="POST" onsubmit="return validateForm('edit-customer-form')" id="edit-customer-form">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="required">Name</label>
-                                    <input type="text" name="name" class="form-control" required
-                                        value="<?php echo $customer['name']; ?>">
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="required">Phone</label>
-                                    <input type="tel" name="phone" class="form-control phone-input" required
-                                        value="<?php echo $customer['phone']; ?>"
-                                        pattern="[0-9]{10}">
-                                    <small class="text-muted">Format: 0777123456</small>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Email</label>
-                                    <input type="email" name="email" class="form-control"
-                                        value="<?php echo $customer['email']; ?>">
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Address</label>
-                                    <textarea name="address" class="form-control" rows="3"><?php echo $customer['address']; ?></textarea>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Customer Summary -->
-                        <div class="row mt-4">
-                            <div class="col-md-12">
-                                <div class="card bg-light">
-                                    <div class="card-body">
-                                        <?php
-                                        $query = "SELECT 
+                    <!-- Customer Summary -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <?php
+                                    $query = "SELECT 
                                         (SELECT COUNT(*) FROM vehicles WHERE customer_id = $customer_id) as vehicle_count,
                                         COUNT(DISTINCT ri.id) as repair_count,
                                         MAX(ri.invoice_date) as last_visit
                                      FROM vehicles v
                                      LEFT JOIN repair_invoices ri ON v.id = ri.vehicle_id
                                      WHERE v.customer_id = $customer_id";
-                                        $result = Database::search($query);
-                                        $summary = $result->fetch_assoc();
-                                        ?>
-                                        <h5>Customer Summary</h5>
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <p class="mb-1"><strong>Registered Vehicles:</strong> <?php echo $summary['vehicle_count']; ?></p>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <p class="mb-1"><strong>Total Repairs:</strong> <?php echo $summary['repair_count']; ?></p>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <p class="mb-1">
-                                                    <strong>Last Visit:</strong>
-                                                    <?php echo $summary['last_visit'] ?
-                                                        date('Y-m-d', strtotime($summary['last_visit'])) : 'Never'; ?>
-                                                </p>
-                                            </div>
+                                    $result = Database::search($query);
+                                    $summary = $result->fetch_assoc();
+                                    ?>
+                                    <h5>Customer Summary</h5>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <p class="mb-1"><strong>Registered Vehicles:</strong> <?php echo $summary['vehicle_count']; ?></p>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <p class="mb-1"><strong>Total Repairs:</strong> <?php echo $summary['repair_count']; ?></p>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <p class="mb-1">
+                                                <strong>Last Visit:</strong>
+                                                <?php echo $summary['last_visit'] ?
+                                                    date('Y-m-d', strtotime($summary['last_visit'])) : 'Never'; ?>
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="form-group mt-4">
-                            <button type="submit" class="btn btn-primary">Update Customer</button>
-                            <a href="view_customer.php?id=<?php echo $customer_id; ?>" class="btn btn-secondary">Cancel</a>
+                    <div class="form-group mt-4">
+                        <button type="submit" class="btn btn-primary">Update Customer</button>
+                        <a href="view_customer.php?id=<?php echo $customer_id; ?>" class="btn btn-secondary">Cancel</a>
 
-                            <!-- Quick Action Buttons -->
-                            <div class="float-end">
-                                <a href="add_vehicle.php?customer_id=<?php echo $customer_id; ?>" class="btn btn-success">
-                                    <i class="fas fa-car"></i> Add Vehicle
-                                </a>
-                                <a href="customer_history.php?id=<?php echo $customer_id; ?>" class="btn btn-info">
-                                    <i class="fas fa-history"></i> View History
-                                </a>
-                            </div>
+                        <!-- Quick Action Buttons -->
+                        <div class="float-end">
+                            <a href="add_vehicle.php?customer_id=<?php echo $customer_id; ?>" class="btn btn-success">
+                                <i class="fas fa-car"></i> Add Vehicle
+                            </a>
+                            <a href="customer_history.php?id=<?php echo $customer_id; ?>" class="btn btn-info">
+                                <i class="fas fa-history"></i> View History
+                            </a>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

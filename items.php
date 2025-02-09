@@ -76,11 +76,6 @@ include 'header.php';
                                         class="btn btn-sm btn-success">
                                         <i class="fas fa-box text-light"></i>
                                     </a>
-                                    <a href="delete_item.php?id=<?php echo $row['id']; ?>"
-                                        class="btn btn-sm btn-danger"
-                                        onclick="return confirmDelete();">
-                                        <i class="fas fa-trash text-light"></i>
-                                    </a>
                                 </td>
                             </tr>
                         <?php endwhile; ?>

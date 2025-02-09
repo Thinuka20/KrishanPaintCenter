@@ -6,6 +6,11 @@ require_once 'auth.php';
 require_once 'connection.php';
 checkLogin();
 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: unauthorized.php");
+    exit();
+}
+
 // Get today's statistics
 $today = date('Y-m-d');
 
@@ -29,7 +34,7 @@ $result = Database::search($query);
 $low_stock_count = $result->fetch_assoc()['count'];
 
 // Pending estimates
-$query = "SELECT COUNT(*) as count FROM estimates WHERE status = 'pending'";
+$query = "SELECT COUNT(*) as count FROM estimates";
 $result = Database::search($query);
 $pending_estimates = $result->fetch_assoc()['count'];
 
@@ -46,41 +51,37 @@ include 'header.php';
     <!-- Quick Stats -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card">
+            <div class="card bg-primary text-white">
                 <div class="card-body">
-                    <h5 class="card-title">Today's Sales</h5>
+                    <h5 class="card-title ">Today's Sales</h5>
                     <h3><?php echo formatCurrency($today_sales); ?></h3>
-                    <a href="report_sales_daily.php" style="text-decoration: none;">View Details →</a>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-3">
             <div class="card">
-                <div class="card-body">
+                <div class="card-body bg-warning text-white">
                     <h5 class="card-title">Today's Expenses</h5>
                     <h3><?php echo formatCurrency($today_expenses); ?></h3>
-                    <a href="expenses.php" style="text-decoration: none;">View Details →</a>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-3">
             <div class="card">
-                <div class="card-body">
+                <div class="card-body bg-success text-white">
                     <h5 class="card-title">Low Stock Items</h5>
                     <h3><?php echo $low_stock_count; ?> Items</h3>
-                    <a href="report_low_stock.php" style="text-decoration: none;">View Details →</a>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-3">
             <div class="card">
-                <div class="card-body">
+                <div class="card-body bg-info text-white">
                     <h5 class="card-title">Pending Estimates</h5>
                     <h3><?php echo $pending_estimates; ?> Estimates</h3>
-                    <a href="estimates.php" style="text-decoration: none;">View Details →</a>
                 </div>
             </div>
         </div>
@@ -114,21 +115,21 @@ include 'header.php';
                                 $result = Database::search($query);
                                 while ($row = $result->fetch_assoc()):
                                 ?>
-                                <tr>
-                                    <td>
-                                        <a href="view_repair_invoice.php?id=<?php echo $row['id']; ?>">
-                                            <?php echo $row['invoice_number']; ?>
-                                        </a>
-                                    </td>
-                                    <td><?php echo $row['registration_number']; ?></td>
-                                    <td><?php echo formatCurrency($row['total_amount']); ?></td>
-                                    <td>
-                                        <span class="badge bg-<?php echo $row['payment_status'] === 'paid' ? 
-                                            'success' : ($row['payment_status'] === 'partial' ? 'warning' : 'danger'); ?>">
-                                            <?php echo ucfirst($row['payment_status']); ?>
-                                        </span>
-                                    </td>
-                                </tr>
+                                    <tr>
+                                        <td>
+                                            <a href="view_repair_invoice.php?id=<?php echo $row['id']; ?>">
+                                                <?php echo $row['invoice_number']; ?>
+                                            </a>
+                                        </td>
+                                        <td><?php echo $row['registration_number']; ?></td>
+                                        <td><?php echo formatCurrency($row['total_amount']); ?></td>
+                                        <td>
+                                            <span class="badge bg-<?php echo $row['payment_status'] === 'paid' ?
+                                                                        'success' : ($row['payment_status'] === 'partial' ? 'warning' : 'danger'); ?>">
+                                                <?php echo ucfirst($row['payment_status']); ?>
+                                            </span>
+                                        </td>
+                                    </tr>
                                 <?php endwhile; ?>
                             </tbody>
                         </table>
@@ -163,21 +164,21 @@ include 'header.php';
                                 $result = Database::search($query);
                                 while ($row = $result->fetch_assoc()):
                                 ?>
-                                <tr>
-                                    <td>
-                                        <a href="view_item_invoice.php?id=<?php echo $row['id']; ?>">
-                                            <?php echo $row['invoice_number']; ?>
-                                        </a>
-                                    </td>
-                                    <td><?php echo $row['customer_name']; ?></td>
-                                    <td><?php echo formatCurrency($row['total_amount']); ?></td>
-                                    <td>
-                                        <span class="badge bg-<?php echo $row['payment_status'] === 'paid' ? 
-                                            'success' : ($row['payment_status'] === 'partial' ? 'warning' : 'danger'); ?>">
-                                            <?php echo ucfirst($row['payment_status']); ?>
-                                        </span>
-                                    </td>
-                                </tr>
+                                    <tr>
+                                        <td>
+                                            <a href="view_item_invoice.php?id=<?php echo $row['id']; ?>">
+                                                <?php echo $row['invoice_number']; ?>
+                                            </a>
+                                        </td>
+                                        <td><?php echo $row['customer_name']; ?></td>
+                                        <td><?php echo formatCurrency($row['total_amount']); ?></td>
+                                        <td>
+                                            <span class="badge bg-<?php echo $row['payment_status'] === 'paid' ?
+                                                                        'success' : ($row['payment_status'] === 'partial' ? 'warning' : 'danger'); ?>">
+                                                <?php echo ucfirst($row['payment_status']); ?>
+                                            </span>
+                                        </td>
+                                    </tr>
                                 <?php endwhile; ?>
                             </tbody>
                         </table>
@@ -213,17 +214,17 @@ include 'header.php';
                                 $result = Database::search($query);
                                 while ($row = $result->fetch_assoc()):
                                 ?>
-                                <tr>
-                                    <td><?php echo $row['name']; ?></td>
-                                    <td><?php echo $row['stock_quantity']; ?></td>
-                                    <td><?php echo $row['minimum_stock']; ?></td>
-                                    <td>
-                                        <a href="update_stock.php?id=<?php echo $row['id']; ?>" 
-                                           class="btn btn-sm btn-warning">
-                                            Update Stock
-                                        </a>
-                                    </td>
-                                </tr>
+                                    <tr>
+                                        <td><?php echo $row['name']; ?></td>
+                                        <td><?php echo $row['stock_quantity']; ?></td>
+                                        <td><?php echo $row['minimum_stock']; ?></td>
+                                        <td>
+                                            <a href="update_stock.php?id=<?php echo $row['id']; ?>"
+                                                class="btn btn-sm btn-warning">
+                                                Update Stock
+                                            </a>
+                                        </td>
+                                    </tr>
                                 <?php endwhile; ?>
                             </tbody>
                         </table>
@@ -240,41 +241,50 @@ include 'header.php';
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table table-hover mb-0">
                             <thead>
                                 <tr>
-                                    <th>Estimate #</th>
+                                    <th class="px-3">Estimate No.</th>
                                     <th>Vehicle</th>
-                                    <th>Amount</th>
-                                    <th>Action</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end pe-3">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php
-                                $query = "SELECT e.*, v.registration_number 
-                                         FROM estimates e 
-                                         LEFT JOIN vehicles v ON e.vehicle_id = v.id 
-                                         WHERE e.status = 'pending' 
-                                         ORDER BY e.estimate_date DESC LIMIT 5";
+                                $query = "SELECT e.*, v.registration_number, c.name as customer_name, 
+                                        DATEDIFF(CURRENT_DATE, e.estimate_date) as days_pending
+                                 FROM estimates e 
+                                 LEFT JOIN vehicles v ON e.vehicle_id = v.id 
+                                 LEFT JOIN customers c ON v.customer_id = c.id 
+                                 ORDER BY e.estimate_date DESC LIMIT 5";
                                 $result = Database::search($query);
                                 while ($row = $result->fetch_assoc()):
+                                    $badge_class = $row['days_pending'] > 7 ? 'text-danger' : 'text-muted';
                                 ?>
-                                <tr>
-                                    <td>
-                                        <a href="view_estimate.php?id=<?php echo $row['id']; ?>">
-                                            <?php echo $row['estimate_number']; ?>
-                                        </a>
-                                    </td>
-                                    <td><?php echo $row['registration_number']; ?></td>
-                                    <td><?php echo formatCurrency($row['total_amount']); ?></td>
-                                    <td>
-                                        <a href="convert_to_invoice.php?id=<?php echo $row['id']; ?>" 
-                                           class="btn btn-sm btn-success"
-                                           onclick="return confirm('Convert this estimate to Approve?');">
-                                            Approve
-                                        </a>
-                                    </td>
-                                </tr>
+                                    <tr>
+                                        <td class="px-3">
+                                            <a href="view_estimate.php?id=<?php echo $row['id']; ?>" class="text-decoration-none">
+                                                <?php echo $row['estimate_number']; ?>
+                                            </a>
+                                            <small class="d-block <?php echo $badge_class; ?>">
+                                                <?php echo $row['days_pending']; ?> days
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <div><?php echo $row['registration_number']; ?></div>
+                                            <small class="text-muted"><?php echo $row['customer_name']; ?></small>
+                                        </td>
+                                        <td class="text-end align-middle">
+                                            <?php echo formatCurrency($row['total_amount']); ?>
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <div class="btn-group">
+                                                <a href="view_repair_estimate.php?id=<?php echo $row['id']; ?>"
+                                                    class="btn btn-sm btn-outline-secondary">View</a>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 <?php endwhile; ?>
                             </tbody>
                         </table>
