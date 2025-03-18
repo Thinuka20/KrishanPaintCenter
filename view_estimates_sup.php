@@ -13,7 +13,7 @@ include 'header.php';
 
     <div class="row mb-3">
         <div class="col-md-6">
-            <h2>Create Supplimentary Repair Estimates</h2>
+            <h2>Create Supplementary Repair Estimates</h2>
         </div>
         <div class="col-md-6 text-end">
             <button onclick="history.back()" class="btn btn-secondary">
@@ -66,20 +66,50 @@ include 'header.php';
                                     <tbody>
                                         <?php
                                         $common_repairs = [
-                                            'Scanning',
-                                            'Repairing',
-                                            'Replacing'
+                                            'Removing and Refitting' => [
+                                                'Scanning',
+                                                'Dismantling',
+                                                'Assembly',
+                                                'Refitting'
+                                            ],
+                                            'Repairing' => [
+                                                'Panel Repair',
+                                                'Dent Repair',
+                                                'Chassis Repair',
+                                                'Buffer Repair'
+                                            ],
+                                            'Replacing' => [
+                                                'Panel Replacement',
+                                                'Part Replacement',
+                                                'Component Change',
+                                                'Unit Replacement'
+                                            ],
+                                            'Repainting' => [
+                                                'Full Body Painting',
+                                                'Spot Painting',
+                                                'Color Matching',
+                                                'Clear Coating'
+                                            ],
+                                            'Spare Parts' => [
+                                                'Buffer',
+                                                'Windscreen',
+                                                'Lights',
+                                                'Panels'
+                                            ]
                                         ];
 
-                                        foreach ($common_repairs as $repair) {
-                                            echo "<tr>
+                                        foreach ($common_repairs as $category => $repairs) {
+                                            echo "<tr><td colspan='2' class='bg-light'><strong>$category</strong></td></tr>";
+                                            foreach ($repairs as $repair) {
+                                                echo "<tr>
                                                     <td class='align-middle'>{$repair}</td>
                                                     <td width='100' class='text-center'>
-                                                        <button type='button' class='btn btn-sm btn-primary copy-btn' data-text='{$repair}'>
+                                                        <button type='button' class='btn btn-sm btn-primary copy-btn' data-text='{$repair}' data-category='" . strtolower(explode(' ', $category)[0]) . "'>
                                                             <i class='fas fa-copy'></i> Copy
                                                         </button>
                                                     </td>
                                                 </tr>";
+                                            }
                                         }
                                         ?>
                                     </tbody>
@@ -98,6 +128,7 @@ include 'header.php';
                                 <thead>
                                     <tr>
                                         <th>Description</th>
+                                        <th>Category</th>
                                         <th>Price</th>
                                         <th>Action</th>
                                     </tr>
@@ -110,6 +141,15 @@ include 'header.php';
                                             <input type="text" id="newDescription" class="form-control" placeholder="Enter description">
                                         </td>
                                         <td>
+                                            <select id="newCategory" class="form-control">
+                                                <option value="removing">Removing and Refitting</option>
+                                                <option value="repairing">Repairing</option>
+                                                <option value="replacing">Replacing</option>
+                                                <option value="repainting">Repainting</option>
+                                                <option value="spares">Spare Parts</option>
+                                            </select>
+                                        </td>
+                                        <td>
                                             <input type="number" id="newPrice" class="form-control" placeholder="Enter price">
                                         </td>
                                         <td>
@@ -119,7 +159,7 @@ include 'header.php';
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td colspan="1" class="text-end"><strong>Total Estimate:</strong></td>
+                                        <td colspan="2" class="text-end"><strong>Total Estimate:</strong></td>
                                         <td id="totalEstimate">0.00</td>
                                         <td></td>
                                     </tr>
@@ -186,6 +226,7 @@ include 'header.php';
 
     function addToEstimate() {
         const description = document.getElementById('newDescription').value;
+        const category = document.getElementById('newCategory').value;
         const price = parseFloat(document.getElementById('newPrice').value);
 
         if (!description || !price) {
@@ -195,6 +236,7 @@ include 'header.php';
 
         estimateItems.push({
             description,
+            category,
             price
         });
         updateEstimateDisplay();
@@ -211,19 +253,72 @@ include 'header.php';
         tbody.innerHTML = '';
         let total = 0;
 
-        estimateItems.forEach((item, index) => {
-            total += item.price;
-            tbody.innerHTML += `
-            <tr>
-                <td>${item.description}</td>
-                <td>${item.price.toFixed(2)}</td>
-                <td>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="removeFromEstimate(${index})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>`;
+        // Sort items by category
+        const sortedItems = [...estimateItems].sort((a, b) => {
+            const categoryOrder = {
+                'removing': 1,
+                'repairing': 2,
+                'replacing': 3,
+                'repainting': 4,
+                'spares': 5
+            };
+            return categoryOrder[a.category] - categoryOrder[b.category];
         });
+
+        // Group items by category
+        const groupedItems = {};
+        sortedItems.forEach(item => {
+            if (!groupedItems[item.category]) {
+                groupedItems[item.category] = [];
+            }
+            groupedItems[item.category].push(item);
+        });
+
+        // Display grouped items
+        for (const category in groupedItems) {
+            const items = groupedItems[category];
+            let categoryTotal = 0;
+
+            // Category header
+            const categoryName = {
+                'removing': 'Removing and Refitting',
+                'repairing': 'Repairing',
+                'replacing': 'Replacing',
+                'repainting': 'Repainting',
+                'spares': 'Spare Parts'
+            } [category];
+
+            tbody.innerHTML += `
+                <tr class="bg-light">
+                    <td colspan="4"><strong>${categoryName}</strong></td>
+                </tr>
+            `;
+
+            // Category items
+            items.forEach((item, idx) => {
+                categoryTotal += item.price;
+                total += item.price;
+                tbody.innerHTML += `
+                <tr>
+                    <td>${item.description}</td>
+                    <td>${categoryName}</td>
+                    <td>${item.price.toFixed(2)}</td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeFromEstimate(${estimateItems.indexOf(item)})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            });
+
+            // Category subtotal
+            tbody.innerHTML += `
+                <tr>
+                    <td colspan="2" class="text-end"><em>${categoryName} Total:</em></td>
+                    <td colspan="2">${categoryTotal.toFixed(2)}</td>
+                </tr>
+            `;
+        }
 
         document.getElementById('totalEstimate').textContent = total.toFixed(2);
         document.getElementById('estimateItems').value = JSON.stringify(estimateItems);
@@ -274,7 +369,9 @@ include 'header.php';
     $(document).ready(function() {
         $('.copy-btn').click(function() {
             const text = $(this).data('text');
+            const category = $(this).data('category');
             $('#newDescription').val(text);
+            $('#newCategory').val(category);
             $(this).removeClass('btn-primary').addClass('btn-success')
                 .html('<i class="fas fa-check"></i> Copied');
 

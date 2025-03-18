@@ -94,7 +94,7 @@ include 'header.php';
                 </a>
             <?php endif; ?>
             <a href="print_salary_slip.php?id=<?php echo $employee_id; ?>&month=<?php echo $month; ?>"
-                class="btn btn-secondary" target="_blank">
+                class="btn btn-danger" target="_blank">
                 <i class="fas fa-file-pdf"></i> Print Salary Slip
             </a>
             <button onclick="history.back()" class="btn btn-secondary">

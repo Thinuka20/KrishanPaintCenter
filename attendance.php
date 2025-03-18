@@ -28,9 +28,6 @@ include 'header.php';
             <a href="mark_attendance.php" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Mark Attendance
             </a>
-            <a href="preview_attendance.php?<?php echo $_SERVER['QUERY_STRING']; ?>" class="btn btn-success">
-                <i class="fas fa-file-alt"></i> Preview Report
-            </a>
             <button onclick="history.back()" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Employee
             </button>
@@ -134,16 +131,14 @@ include 'header.php';
                                     </span>
                                 </td>
                                 <td>
-                                    <?php if ($row['attendance_date'] === $current_date): ?>
-                                        <a href="mark_attendance.php?edit=<?php echo $row['id']; ?>"
-                                            class="btn btn-sm btn-primary">
-                                            <i class="fas fa-edit text-light"></i>
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-danger"
-                                            onclick="confirmDeleteAttendance(<?php echo $row['id']; ?>)">
-                                            <i class="fas fa-trash text-light"></i>
-                                        </button>
-                                    <?php endif; ?>
+                                    <a href="mark_attendance.php?edit=<?php echo $row['id']; ?>"
+                                        class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit text-light"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger"
+                                        onclick="confirmDeleteAttendance(<?php echo $row['id']; ?>)">
+                                        <i class="fas fa-trash text-light"></i>
+                                    </button>
 
                                     <?php if ($row['notes']): ?>
                                         <button type="button" class="btn btn-sm btn-info"

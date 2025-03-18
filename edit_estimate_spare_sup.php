@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $total_amount = $_POST['total_amount'];
 
     // Update estimate
-    $update_query = "UPDATE estimates_spareparts SET 
+    $update_query = "UPDATE estimates_spareparts_supplimentary SET 
         vehicle_id = '" . $vehicle_id . "',
         estimate_date = '" . $estimate_date . "',
         total_amount = '" . $total_amount . "',
@@ -31,31 +31,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Database::iud($update_query);
 
     // Delete existing items
-    Database::iud("DELETE FROM estimate_items_spareparts WHERE estimate_id = '" . $id . "'");
+    Database::iud("DELETE FROM estimate_items_spareparts_supplimentary WHERE estimate_id = '" . $id . "'");
 
     // Insert new items
     foreach ($estimate_items as $item) {
         $price = isset($item['price']) && $item['price'] !== '' ? $item['price'] : 'NULL';
-        $item_query = "INSERT INTO estimate_items_spareparts (estimate_id, description, price) 
+        $item_query = "INSERT INTO estimate_items_spareparts_supplimentary (estimate_id, description, price) 
                   VALUES ('" . $id . "', '" . $item['description'] . "', " . $price . ")";
         Database::iud($item_query);
     }
 
-    header("Location: spare_parts_estimates.php?success=Estimate updated successfully");
+    header("Location: spare_parts_estimates_sup.php?success=Estimate updated successfully");
     exit();
 }
 
 // Fetch estimate data
 $estimate_result = Database::search("SELECT e.*, v.registration_number, c.name as customer_name,
                                           v.make, v.model 
-                                   FROM estimates_spareparts e 
+                                   FROM estimates_spareparts_supplimentary e 
                                    LEFT JOIN vehicles v ON e.vehicle_id = v.id 
                                    LEFT JOIN customers c ON v.customer_id = c.id 
                                    WHERE e.id = '" . $id . "'");
 $estimate = $estimate_result->fetch_assoc();
 
 // Fetch estimate items
-$items_result = Database::search("SELECT * FROM estimate_items_spareparts WHERE estimate_id = '" . $id . "'");
+$items_result = Database::search("SELECT * FROM estimate_items_spareparts_supplimentary WHERE estimate_id = '" . $id . "'");
 
 include 'header.php';
 ?>
@@ -63,7 +63,7 @@ include 'header.php';
 <div class="container content">
     <div class="row mb-3">
         <div class="col-md-6">
-            <h2>Edit Spare Parts Estimate #<?php echo htmlspecialchars($estimate['estimate_number']); ?></h2>
+            <h2>Edit Spare Parts Supplimentary Estimate #<?php echo htmlspecialchars($estimate['estimate_number']); ?></h2>
         </div>
         <div class="col-md-6 text-end">
             <button onclick="history.back()" class="btn btn-secondary">
@@ -358,7 +358,7 @@ include 'header.php';
 
         const form = $('<form>', {
             method: 'POST',
-            action: 'print_repair_estimate_spare.php?id=<?php echo $id; ?>',
+            action: 'print_repair_estimate_spare_sup.php?id=<?php echo $id; ?>',
             target: '_blank'
         });
 

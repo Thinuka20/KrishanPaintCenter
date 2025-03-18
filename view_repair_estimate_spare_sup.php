@@ -9,12 +9,12 @@ checkLogin();
 $id = $_GET['id'] ?? null;
 if (!$id) {
     $_SESSION['error'] = 'Invalid estimate ID';
-    header('Location: view_repair_estimate_spare.php');
+    header('Location: view_repair_estimate_spare_sup.php');
     exit();
 }
 
 $query = "SELECT e.*, v.registration_number, v.make, v.model, c.name as customer_name, c.phone as customer_phone
-          FROM estimates_spareparts e
+          FROM estimates_spareparts_supplimentary e
           JOIN vehicles v ON e.vehicle_id = v.id 
           JOIN customers c ON v.customer_id = c.id
           WHERE e.id = '$id'";
@@ -22,13 +22,13 @@ $query = "SELECT e.*, v.registration_number, v.make, v.model, c.name as customer
 $result = Database::search($query);
 if ($result->num_rows === 0) {
     $_SESSION['error'] = 'Estimate not found';
-    header('Location: spare_parts_estimates.php');
+    header('Location: spare_parts_estimates_sup.php');
     exit();
 }
 
 $estimate = $result->fetch_assoc();
 
-$items_query = "SELECT * FROM estimate_items_spareparts WHERE estimate_id = '$id'";
+$items_query = "SELECT * FROM estimate_items_spareparts_supplimentary WHERE estimate_id = '$id'";
 $items_result = Database::search($items_query);
 
 include 'header.php';
@@ -39,7 +39,7 @@ include 'header.php';
 
     <div class="row mb-3">
         <div class="col-md-6">
-            <h2>View Spare Parts Estimate #<?php echo $estimate['estimate_number']; ?></h2>
+            <h2>View Spare Parts Supplimentary Estimate #<?php echo $estimate['estimate_number']; ?></h2>
         </div>
         <div class="col-md-6 text-end">
             <a href="#" onclick="printEstimate(<?php echo $id; ?>)" class="btn btn-primary">
@@ -113,11 +113,11 @@ include 'header.php';
 
 <script>
     function printEstimate(id) {
-        const query = "SELECT e.*, ei.* FROM estimates_spareparts e JOIN estimate_items_spareparts ei ON e.id = ei.estimate_id WHERE e.id = '" + id + "'";
+        const query = "SELECT e.*, ei.* FROM estimates_spareparts_supplimentary e JOIN estimate_items_spareparts_supplimentary ei ON e.id = ei.estimate_id WHERE e.id = '" + id + "'";
 
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = 'print_repair_estimate_spare.php?id=' + encodeURIComponent(id);
+        form.action = 'print_repair_estimate_spare_sup.php?id=' + encodeURIComponent(id);
         form.target = '_blank';
 
         const idInput = document.createElement('input');

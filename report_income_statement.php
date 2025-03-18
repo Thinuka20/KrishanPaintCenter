@@ -17,16 +17,18 @@ $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
 
 // Calculate total income from repair invoices
-$query = "SELECT COALESCE(SUM(total_amount), 0) as repair_income 
-          FROM repair_invoices 
-          WHERE invoice_date BETWEEN '$start_date' AND '$end_date'";
+$query = "SELECT COALESCE(SUM(pt.amount), 0) as repair_income
+FROM payment_transactions pt
+WHERE pt.invoice_type = 'repair'
+AND pt.payment_date BETWEEN '$start_date' AND '$end_date'";
 $result = Database::search($query);
 $repair_income = $result->fetch_assoc()['repair_income'];
 
 // Add income from item invoices
-$query = "SELECT COALESCE(SUM(total_amount), 0) as item_income 
-          FROM item_invoices 
-          WHERE invoice_date BETWEEN '$start_date' AND '$end_date'";
+$query = "SELECT COALESCE(SUM(pt.amount), 0) as item_income
+FROM payment_transactions pt
+WHERE pt.invoice_type = 'item'
+AND pt.payment_date BETWEEN '$start_date' AND '$end_date'";
 $result = Database::search($query);
 $item_income = $result->fetch_assoc()['item_income'];
 
@@ -39,28 +41,28 @@ $end = new DateTime($end_date);
 
 while ($current_date <= $end) {
     $date = $current_date->format('Y-m-d');
-    
+
     // Get daily repair income
     $query = "SELECT COALESCE(SUM(total_amount), 0) as repair_income 
               FROM repair_invoices 
               WHERE DATE(invoice_date) = '$date'";
     $result = Database::search($query);
     $repair_amount = $result->fetch_assoc()['repair_income'];
-    
+
     // Get daily item sales income
     $query = "SELECT COALESCE(SUM(total_amount), 0) as item_income 
               FROM item_invoices 
               WHERE DATE(invoice_date) = '$date'";
     $result = Database::search($query);
     $item_amount = $result->fetch_assoc()['item_income'];
-    
+
     $daily_data[] = [
         'date' => $date,
         'repair' => floatval($repair_amount),
         'items' => floatval($item_amount),
         'total' => floatval($repair_amount + $item_amount)
     ];
-    
+
     $current_date->modify('+1 day');
 }
 
@@ -154,19 +156,19 @@ if (isset($_GET['export_pdf'])) {
     LEFT JOIN customers c ON ii.customer_id = c.id
     WHERE ii.invoice_date BETWEEN '$start_date' AND '$end_date'
     ORDER BY invoice_date";
-    
+
     $result = Database::search($query);
 
     while ($row = $result->fetch_assoc()) {
         $pdf->Cell($widths[0], 6, date('Y-m-d', strtotime($row['invoice_date'])), 1, 0, 'C');
         $pdf->Cell($widths[1], 6, $row['invoice_number'], 1, 0, 'C');
-        
+
         $customer_info = $row['customer_name'];
         if ($row['registration_number']) {
             $customer_info .= ' (' . $row['registration_number'] . ')';
         }
         $pdf->Cell($widths[2], 6, $customer_info, 1);
-        
+
         $pdf->Cell($widths[3], 6, $row['invoice_type'], 1, 0, 'C');
         $pdf->Cell($widths[4], 6, formatCurrency($row['total_amount']), 1, 0, 'R');
         $pdf->Ln();
@@ -193,9 +195,9 @@ include 'header.php';
             <h2>Income Statement</h2>
         </div>
         <div class="col-md-6 text-end">
-            <a href="?start_date=<?php echo $start_date; ?>&end_date=<?php echo $end_date; ?>&export_pdf=1" 
-               class="btn btn-primary" target="_blank">
-               <i class="fas fa-print"></i> Print Report
+            <a href="?start_date=<?php echo $start_date; ?>&end_date=<?php echo $end_date; ?>&export_pdf=1"
+                class="btn btn-primary" target="_blank">
+                <i class="fas fa-print"></i> Print Report
             </a>
             <button onclick="history.back()" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Reports
@@ -332,7 +334,7 @@ include 'header.php';
 
                         $result = Database::search($query);
                         $total_income = 0;
-                        
+
                         while ($row = $result->fetch_assoc()):
                             $total_income += $row['total_amount'];
                             $customer_info = $row['customer_name'];
@@ -362,125 +364,124 @@ include 'header.php';
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Parse the PHP data for charts
-    const dailyData = <?php echo json_encode($daily_data); ?>;
-    
-    // Daily Income Trend Chart
-    const dailyCtx = document.getElementById('dailyIncomeChart').getContext('2d');
-    new Chart(dailyCtx, {
-        type: 'line',
-        data: {
-            labels: dailyData.map(item => item.date),
-            datasets: [
-                {
-                    label: 'Repair Services',
-                    data: dailyData.map(item => item.repair),
-                    borderColor: 'rgb(23, 162, 184)',
-                    backgroundColor: 'rgba(23, 162, 184, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                },
-                {
-                    label: 'Item Sales',
-                    data: dailyData.map(item => item.items),
-                    borderColor: 'rgb(40, 167, 69)',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                },
-                {
-                    label: 'Total Income',
-                    data: dailyData.map(item => item.total),
-                    borderColor: 'rgb(0, 123, 255)',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': Rs. ' + 
-                                   context.raw.toLocaleString();
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse the PHP data for charts
+        const dailyData = <?php echo json_encode($daily_data); ?>;
+
+        // Daily Income Trend Chart
+        const dailyCtx = document.getElementById('dailyIncomeChart').getContext('2d');
+        new Chart(dailyCtx, {
+            type: 'line',
+            data: {
+                labels: dailyData.map(item => item.date),
+                datasets: [{
+                        label: 'Repair Services',
+                        data: dailyData.map(item => item.repair),
+                        borderColor: 'rgb(23, 162, 184)',
+                        backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Item Sales',
+                        data: dailyData.map(item => item.items),
+                        borderColor: 'rgb(40, 167, 69)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Total Income',
+                        data: dailyData.map(item => item.total),
+                        borderColor: 'rgb(0, 123, 255)',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': Rs. ' +
+                                    context.raw.toLocaleString();
+                            }
                         }
                     }
-                }
-            },
-            scales: {
-                x: {
-                    type: 'time',
-                    time: {
-                        parser: 'yyyy-MM-dd',
-                        unit: 'day',
-                        displayFormats: {
-                            day: 'MMM d'
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            parser: 'yyyy-MM-dd',
+                            unit: 'day',
+                            displayFormats: {
+                                day: 'MMM d'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Date'
                         }
                     },
-                    title: {
-                        display: true,
-                        text: 'Date'
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'Rs. ' + value.toLocaleString();
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rs. ' + value.toLocaleString();
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
 
-    // Income Distribution Chart
-    const distributionCtx = document.getElementById('incomeDistributionChart').getContext('2d');
-    new Chart(distributionCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Repair Services', 'Item Sales'],
-            datasets: [{
-                data: [<?php echo $repair_income; ?>, <?php echo $item_income; ?>],
-                backgroundColor: [
-                    'rgba(23, 162, 184, 0.8)',
-                    'rgba(40, 167, 69, 0.8)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right'
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const value = context.raw;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            return `${context.label}: Rs. ${value.toLocaleString()} (${percentage}%)`;
+        // Income Distribution Chart
+        const distributionCtx = document.getElementById('incomeDistributionChart').getContext('2d');
+        new Chart(distributionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Repair Services', 'Item Sales'],
+                datasets: [{
+                    data: [<?php echo $repair_income; ?>, <?php echo $item_income; ?>],
+                    backgroundColor: [
+                        'rgba(23, 162, 184, 0.8)',
+                        'rgba(40, 167, 69, 0.8)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${context.label}: Rs. ${value.toLocaleString()} (${percentage}%)`;
+                            }
                         }
                     }
                 }
             }
-        }
+        });
     });
-});
 </script>
 
 <?php include 'footer.php'; ?>

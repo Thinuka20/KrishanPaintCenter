@@ -68,7 +68,8 @@ include 'header.php';
                                         $common_repairs = [
                                             'Scanning',
                                             'Repairing',
-                                            'Replacing'
+                                            'Replacing',
+                                            'Repainting',
                                         ];
 
                                         foreach ($common_repairs as $repair) {

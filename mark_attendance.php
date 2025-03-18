@@ -189,13 +189,13 @@ include 'header.php';
                             <div class="form-group mb-3">
                                 <label class="required">Time In</label>
                                 <input type="time" name="time_in" class="form-control"
-                                    value="<?php echo $attendance ? date('H:i', strtotime($attendance['time_in'])) : ''; ?>">
+                                    value="<?php echo $attendance ? date('H:i', strtotime($attendance['time_in'])) : date('H:i', strtotime('08:00')); ?>">
                             </div>
 
                             <div class="form-group mb-3">
                                 <label class="required">Time Out</label>
                                 <input type="time" name="time_out" class="form-control"
-                                    value="<?php echo $attendance ? date('H:i', strtotime($attendance['time_out'])) : ''; ?>">
+                                    value="<?php echo $attendance ? date('H:i', strtotime($attendance['time_out'])) : date('H:i', strtotime('18:00')); ?>">
                             </div>
                         </div>
 

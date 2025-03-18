@@ -34,14 +34,6 @@ if (!$attendance) {
     exit;
 }
 
-// Only allow deletion of current date records
-$current_date = date('Y-m-d');
-if ($attendance['attendance_date'] !== $current_date) {
-    $response['message'] = 'Can only delete current date attendance records';
-    echo json_encode($response);
-    exit;
-}
-
 // Delete the record
 $delete_query = "DELETE FROM employee_attendance WHERE id = '" . $attendance_id . "'";
 Database::iud($delete_query);

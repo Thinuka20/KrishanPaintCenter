@@ -24,11 +24,11 @@ include 'header.php';
             <a href="add_employee.php" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add New Employee
             </a>
-            <a href="attendance.php" class="btn btn-warning">
-                Attendance
+            <a href="attendance.php" class="btn btn-warning text-light">
+            <i class="fas fa-clipboard-list"></i> Attendance
             </a>
             <a href="salary_payments.php" class="btn btn-success">
-                Salary Payments
+            <i class="fas fa-money-bill-wave"></i> Salary Payments
             </a>
         </div>
     </div>

@@ -68,7 +68,8 @@ include 'header.php';
                                         $common_repairs = [
                                             'Scanning',
                                             'Repairing',
-                                            'Replacing'
+                                            'Replacing',
+                                            'Repainting',
                                         ];
 
                                         foreach ($common_repairs as $repair) {
@@ -242,7 +243,7 @@ include 'header.php';
         }
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = 'print_repair_estimate.php';
+        form.action = 'print_repair_estimate_spare.php';
         form.target = '_blank';
 
         const itemsInput = document.createElement('input');

@@ -44,6 +44,36 @@ include 'header.php';
 
     <div class="card">
         <div class="card-body">
+            <!-- Search Form -->
+            <form method="GET" class="row mb-3">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Customer Name</label>
+                        <input type="text" name="customer_name" class="form-control" 
+                            placeholder="Search by customer name"
+                            value="<?php echo isset($_GET['customer_name']) ? htmlspecialchars($_GET['customer_name']) : ''; ?>">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Vehicle Registration</label>
+                        <input type="text" name="registration_number" class="form-control" 
+                            placeholder="Search by vehicle number"
+                            value="<?php echo isset($_GET['registration_number']) ? htmlspecialchars($_GET['registration_number']) : ''; ?>">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary mt-4">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <a href="customers.php" class="btn btn-secondary mt-4">
+                        <i class="fas fa-redo"></i> Reset
+                    </a>
+                </div>
+            </form>
+
             <!-- Quick Stats -->
             <div class="row mt-4 mb-5">
                 <div class="col-md-3">
@@ -122,6 +152,17 @@ include 'header.php';
                     </thead>
                     <tbody>
                         <?php
+                        $where = "WHERE 1=1";
+                        if (isset($_GET['customer_name']) && !empty($_GET['customer_name'])) {
+                            $customer_name = $_GET['customer_name'];
+                            $where .= " AND c.name LIKE '%$customer_name%'";
+                        }
+                        
+                        if (isset($_GET['registration_number']) && !empty($_GET['registration_number'])) {
+                            $registration_number = $_GET['registration_number'];
+                            $where .= " AND v.registration_number LIKE '%$registration_number%'";
+                        }
+
                         $query = "SELECT c.*, 
                                  COUNT(DISTINCT v.id) as vehicle_count,
                                  COUNT(DISTINCT ri.id) as repair_count,
@@ -129,6 +170,7 @@ include 'header.php';
                                  FROM customers c
                                  LEFT JOIN vehicles v ON c.id = v.customer_id
                                  LEFT JOIN repair_invoices ri ON v.id = ri.vehicle_id
+                                 $where
                                  GROUP BY c.id
                                  ORDER BY c.name";
                         $result = Database::search($query);

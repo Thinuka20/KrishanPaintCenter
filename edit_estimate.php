@@ -35,8 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Insert new items
     foreach ($estimate_items as $item) {
-        $item_query = "INSERT INTO estimate_items (estimate_id, description, price) 
-                      VALUES ('" . $id . "', '" . $item['description'] . "', '" . $item['price'] . "')";
+        $item_query = "INSERT INTO estimate_items (estimate_id, description, category, price) 
+                      VALUES ('" . $id . "', '" . $item['description'] . "', '" . $item['category'] . "', '" . $item['price'] . "')";
         Database::iud($item_query);
     }
 
@@ -60,6 +60,7 @@ include 'header.php';
 ?>
 
 <div class="container content">
+    <?php include 'alerts.php'; ?>
     <div class="row mb-3">
         <div class="col-md-6">
             <h2>Edit Estimate #<?php echo htmlspecialchars($estimate['estimate_number']); ?></h2>
@@ -106,7 +107,7 @@ include 'header.php';
                             </div>
 
                             <!-- Vehicle Details -->
-                            <div id="vehicleDetails">
+                            <div id="vehicleDetails" class="mt-4">
                                 <?php if ($estimate['vehicle_id']): ?>
                                     <div class="card mt-2">
                                         <div class="card-body">
@@ -128,20 +129,50 @@ include 'header.php';
                                     <tbody>
                                         <?php
                                         $common_repairs = [
-                                            'Scanning',
-                                            'Repairing',
-                                            'Replacing'
+                                            'Removing and Refitting' => [
+                                                'Scanning',
+                                                'Dismantling',
+                                                'Assembly',
+                                                'Refitting'
+                                            ],
+                                            'Repairing' => [
+                                                'Panel Repair',
+                                                'Dent Repair',
+                                                'Chassis Repair',
+                                                'Buffer Repair'
+                                            ],
+                                            'Replacing' => [
+                                                'Panel Replacement',
+                                                'Part Replacement',
+                                                'Component Change',
+                                                'Unit Replacement'
+                                            ],
+                                            'Repainting' => [
+                                                'Full Body Painting',
+                                                'Spot Painting',
+                                                'Color Matching',
+                                                'Clear Coating'
+                                            ],
+                                            'Spare Parts' => [
+                                                'Buffer',
+                                                'Windscreen',
+                                                'Lights',
+                                                'Panels'
+                                            ]
                                         ];
 
-                                        foreach ($common_repairs as $repair) {
-                                            echo "<tr>
+                                        foreach ($common_repairs as $category => $repairs) {
+                                            echo "<tr><td colspan='2' class='bg-light'><strong>$category</strong></td></tr>";
+                                            foreach ($repairs as $repair) {
+                                                echo "<tr>
                                                     <td class='align-middle'>{$repair}</td>
                                                     <td width='100' class='text-center'>
-                                                        <button type='button' class='btn btn-sm btn-primary copy-btn' data-text='{$repair}'>
+                                                        <button type='button' class='btn btn-sm btn-primary copy-btn' data-text='{$repair}' data-category='" . strtolower(explode(' ', $category)[0]) . "'>
                                                             <i class='fas fa-copy'></i> Copy
                                                         </button>
                                                     </td>
                                                 </tr>";
+                                            }
                                         }
                                         ?>
                                     </tbody>
@@ -151,14 +182,16 @@ include 'header.php';
                     </div>
                 </div>
 
+                <!-- Repair Items -->
                 <div class="row mb-3">
                     <div class="col-md-12">
-                        <h4>Estimate Items</h4>
+                        <h4>Estimated Repairs</h4>
                         <div class="table-responsive">
-                            <table class="table" id="itemsTable">
+                            <table class="table" id="repairItems">
                                 <thead>
                                     <tr>
                                         <th>Description</th>
+                                        <th>Category</th>
                                         <th>Price</th>
                                         <th>Action</th>
                                     </tr>
@@ -171,6 +204,15 @@ include 'header.php';
                                             <input type="text" id="newDescription" class="form-control" placeholder="Enter description">
                                         </td>
                                         <td>
+                                            <select id="newCategory" class="form-control">
+                                                <option value="removing">Removing and Refitting</option>
+                                                <option value="repairing">Repairing</option>
+                                                <option value="replacing">Replacing</option>
+                                                <option value="repainting">Repainting</option>
+                                                <option value="spares">Spare Parts</option>
+                                            </select>
+                                        </td>
+                                        <td>
                                             <input type="number" id="newPrice" class="form-control" placeholder="Enter price" step="0.01">
                                         </td>
                                         <td>
@@ -180,7 +222,7 @@ include 'header.php';
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td colspan="1" class="text-end"><strong>Total Estimate:</strong></td>
+                                        <td colspan="2" class="text-end"><strong>Total Estimate:</strong></td>
                                         <td id="totalEstimate">0.00</td>
                                         <td></td>
                                     </tr>
@@ -190,6 +232,7 @@ include 'header.php';
                     </div>
                 </div>
 
+                <!-- Notes -->
                 <div class="row mb-3">
                     <div class="col-md-12">
                         <label>Notes</label>
@@ -228,40 +271,28 @@ include 'header.php';
         <?php
         mysqli_data_seek($items_result, 0);
         while ($item = $items_result->fetch_assoc()) {
+            // If the category isn't set in the database, default to 'removing'
+            $category = isset($item['category']) ? $item['category'] : 'removing';
         ?>
             estimateItems.push({
                 description: <?php echo json_encode($item['description']); ?>,
+                category: <?php echo json_encode($category); ?>,
                 price: <?php echo floatval($item['price']); ?>
             });
         <?php
         }
         ?>
 
-        // Initialize display and components
+        // Initialize display and select2
         updateEstimateDisplay();
-        initializeComponents();
-   
+        
         $('.select2').select2({
             theme: 'bootstrap-5'
         });
-        // Show initial vehicle details
-        showVehicleDetails($('#vehicleSelect option:selected'));
-
-        // Copy button functionality
-        $('.copy-btn').click(function() {
-            const text = $(this).data('text');
-            $('#newDescription').val(text);
-            $(this).removeClass('btn-primary').addClass('btn-success')
-                .html('<i class="fas fa-check"></i> Copied');
-
-            setTimeout(() => {
-                $(this).removeClass('btn-success').addClass('btn-primary')
-                    .html('<i class="fas fa-copy"></i> Copy');
-            }, 1000);
-        });
     });
 
-    function showVehicleDetails(selectedOption) {
+    $('#vehicleSelect').change(function() {
+        const selectedOption = $(this).find('option:selected');
         if (selectedOption.val()) {
             document.getElementById('vehicleDetails').innerHTML = `
                 <div class="card mt-2">
@@ -273,45 +304,23 @@ include 'header.php';
                     </div>
                 </div>`;
         }
-    }
-
-    $('#vehicleSelect').change(function() {
-        showVehicleDetails($(this).find('option:selected'));
     });
 
-    function updateVehicleDetails(selectedOption) {
-        const vehicleDetails = `
-        <div class="card mt-2">
-            <div class="card-body">
-                <p><strong>Make:</strong> ${selectedOption.data('make')}</p>
-                <p><strong>Model:</strong> ${selectedOption.data('model')}</p>
-                <p><strong>Registration Number:</strong> ${selectedOption.data('registration_number')}</p>
-                <p><strong>Customer:</strong> ${selectedOption.data('customer')}</p>
-            </div>
-        </div>`;
-        $('#vehicleDetails').html(vehicleDetails);
-    }
-
     function addToEstimate() {
-        const description = $('#newDescription').val().trim();
-        const priceInput = $('#newPrice').val().trim();
-        const price = parseFloat(priceInput);
+        const description = document.getElementById('newDescription').value;
+        const category = document.getElementById('newCategory').value;
+        const price = parseFloat(document.getElementById('newPrice').value);
 
-        if (!description || !priceInput) {
+        if (!description || !price) {
             alert('Please enter both description and price');
             return;
         }
 
-        if (isNaN(price) || price <= 0) {
-            alert('Please enter a valid price');
-            return;
-        }
-
         estimateItems.push({
-            description: description,
-            price: price
+            description,
+            category,
+            price
         });
-
         updateEstimateDisplay();
         clearInputs();
     }
@@ -322,86 +331,144 @@ include 'header.php';
     }
 
     function updateEstimateDisplay() {
-        const tbody = $('#itemsTable tbody');
-        tbody.empty();
-
+        const tbody = document.querySelector('#repairItems tbody');
+        tbody.innerHTML = '';
         let total = 0;
-        estimateItems.forEach((item, index) => {
-            total += parseFloat(item.price);
-            tbody.append(`
-            <tr>
-                <td>${item.description}</td>
-                <td>${parseFloat(item.price).toFixed(2)}</td>
-                <td>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="removeFromEstimate(${index})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `);
+
+        // Sort items by category
+        const sortedItems = [...estimateItems].sort((a, b) => {
+            const categoryOrder = {
+                'removing': 1,
+                'repairing': 2,
+                'replacing': 3,
+                'repainting': 4,
+                'spares': 5
+            };
+            return categoryOrder[a.category] - categoryOrder[b.category];
         });
 
-        $('#totalEstimate').text(total.toFixed(2));
-        $('#estimateItems').val(JSON.stringify(estimateItems));
-        $('#finalAmount').val(total.toFixed(2));
+        // Group items by category
+        const groupedItems = {};
+        sortedItems.forEach(item => {
+            if (!groupedItems[item.category]) {
+                groupedItems[item.category] = [];
+            }
+            groupedItems[item.category].push(item);
+        });
+
+        // Display grouped items
+        for (const category in groupedItems) {
+            const items = groupedItems[category];
+            let categoryTotal = 0;
+
+            // Category header
+            const categoryName = {
+                'removing': 'Removing and Refitting',
+                'repairing': 'Repairing',
+                'replacing': 'Replacing',
+                'repainting': 'Repainting',
+                'spares': 'Spare Parts'
+            } [category];
+
+            tbody.innerHTML += `
+                <tr class="bg-light">
+                    <td colspan="4"><strong>${categoryName}</strong></td>
+                </tr>
+            `;
+
+            // Category items
+            items.forEach((item, idx) => {
+                const originalIndex = estimateItems.findIndex(i => 
+                    i.description === item.description && 
+                    i.category === item.category && 
+                    i.price === item.price
+                );
+                
+                categoryTotal += item.price;
+                total += item.price;
+                tbody.innerHTML += `
+                <tr>
+                    <td>${item.description}</td>
+                    <td>${categoryName}</td>
+                    <td>${item.price.toFixed(2)}</td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeFromEstimate(${originalIndex})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            });
+
+            // Category subtotal
+            tbody.innerHTML += `
+                <tr>
+                    <td colspan="2" class="text-end"><em>${categoryName} Total:</em></td>
+                    <td colspan="2">${categoryTotal.toFixed(2)}</td>
+                </tr>
+            `;
+        }
+
+        document.getElementById('totalEstimate').textContent = total.toFixed(2);
+        document.getElementById('estimateItems').value = JSON.stringify(estimateItems);
+        document.getElementById('finalAmount').value = total;
     }
 
     function clearInputs() {
-        $('#newDescription').val('');
-        $('#newPrice').val('');
-        $('#newDescription').focus();
+        document.getElementById('newDescription').value = '';
+        document.getElementById('newPrice').value = '';
     }
-
-    function printEstimate() {
-        if (!$('#vehicleSelect').val()) {
-            alert('Please select a vehicle first');
-            return;
-        }
-
-        const form = $('<form>', {
-            method: 'POST',
-            action: 'print_repair_estimate.php?id=<?php echo $id; ?>',
-            target: '_blank'
-        });
-
-        form.append($('<input>', {
-            type: 'hidden',
-            name: 'estimate_items',
-            value: JSON.stringify(estimateItems)
-        }));
-
-        form.append($('<input>', {
-            type: 'hidden',
-            name: 'vehicle_id',
-            value: $('#vehicleSelect').val()
-        }));
-
-        form.appendTo('body').submit().remove();
-    }
-
-    $('#estimateForm').on('submit', function(e) {
-        if (estimateItems.length === 0) {
-            e.preventDefault();
-            alert('Please add at least one estimate item');
-            return false;
-        }
-        return true;
-    });
 
     $(document).ready(function() {
         $('.copy-btn').click(function() {
             const text = $(this).data('text');
+            const category = $(this).data('category');
             $('#newDescription').val(text);
+            $('#newCategory').val(category);
             $(this).removeClass('btn-primary').addClass('btn-success')
                 .html('<i class="fas fa-check"></i> Copied');
 
-            // Reset button after 1 second
             setTimeout(() => {
                 $(this).removeClass('btn-success').addClass('btn-primary')
                     .html('<i class="fas fa-copy"></i> Copy');
             }, 1000);
         });
     });
+
+    function printEstimate() {
+        if (!document.getElementById('vehicleSelect').value) {
+            alert('Please select a vehicle first');
+            return;
+        }
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'print_repair_estimate.php?id=<?php echo $id; ?>';
+        form.target = '_blank';
+
+        const itemsInput = document.createElement('input');
+        itemsInput.type = 'hidden';
+        itemsInput.name = 'estimate_items';
+        itemsInput.value = JSON.stringify(estimateItems);
+
+        const vehicleInput = document.createElement('input');
+        vehicleInput.type = 'hidden';
+        vehicleInput.name = 'vehicle_id';
+        vehicleInput.value = document.getElementById('vehicleSelect').value;
+
+        form.appendChild(itemsInput);
+        form.appendChild(vehicleInput);
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+
+    document.getElementById('estimateForm').onsubmit = function(e) {
+        if (estimateItems.length === 0) {
+            e.preventDefault();
+            alert('Please add at least one repair item');
+            return false;
+        }
+        return true;
+    };
 </script>
 
 <?php include 'footer.php'; ?>

@@ -16,7 +16,7 @@ if (!$id) {
 // Get spare parts estimate data
 $query = "SELECT e.*, v.registration_number, v.make, v.model, v.year, 
           c.name as customer_name, c.phone, c.email, c.address 
-          FROM estimates_spareparts e
+          FROM estimates_spareparts_supplimentary e
           JOIN vehicles v ON e.vehicle_id = v.id 
           JOIN customers c ON v.customer_id = c.id
           WHERE e.id = '$id'";
@@ -24,7 +24,7 @@ $result = Database::search($query);
 $estimate = $result->fetch_assoc();
 
 // Get estimate items
-$items_query = "SELECT * FROM estimate_items_spareparts WHERE estimate_id = '$id'";
+$items_query = "SELECT * FROM estimate_items_spareparts_supplimentary WHERE estimate_id = '$id'";
 $items_result = Database::search($items_query);
 
 $items = array();
@@ -38,7 +38,7 @@ while ($item = $items_result->fetch_assoc()) {
 }
 
 // Generate PDF
-$pdf = new ReportPDF('P', 'Spare Parts Estimate');
-$pdf->generateSparePartsEstimate($estimate, $items, $totals);
-$pdf->Output('Spare_Parts_Estimate_' . $estimate['estimate_number'] . '.pdf', 'I');
+$pdf = new ReportPDF('P', 'Spare Parts Supplimentary Estimate');
+$pdf->generateSparePartsSupEstimate($estimate, $items, $totals);
+$pdf->Output('Spare_Parts_Supplimentary_Estimate_' . $estimate['estimate_number'] . '.pdf', 'I');
 ?>

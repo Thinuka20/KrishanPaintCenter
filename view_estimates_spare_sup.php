@@ -5,65 +5,15 @@ require_once 'auth.php';
 require_once 'connection.php';
 
 checkLogin();
-
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: unauthorized.php");
-    exit();
-}
-
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $vehicle_id = $_POST['vehicle_id'];
-    $estimate_date = $_POST['estimate_date'];
-    $notes = $_POST['notes'];
-    $estimate_items = json_decode($_POST['estimate_items'], true);
-    $total_amount = $_POST['total_amount'];
-
-    // Update estimate
-    $update_query = "UPDATE estimates_spareparts SET 
-        vehicle_id = '" . $vehicle_id . "',
-        estimate_date = '" . $estimate_date . "',
-        total_amount = '" . $total_amount . "',
-        notes = '" . $notes . "'
-        WHERE id = '" . $id . "'";
-
-    Database::iud($update_query);
-
-    // Delete existing items
-    Database::iud("DELETE FROM estimate_items_spareparts WHERE estimate_id = '" . $id . "'");
-
-    // Insert new items
-    foreach ($estimate_items as $item) {
-        $price = isset($item['price']) && $item['price'] !== '' ? $item['price'] : 'NULL';
-        $item_query = "INSERT INTO estimate_items_spareparts (estimate_id, description, price) 
-                  VALUES ('" . $id . "', '" . $item['description'] . "', " . $price . ")";
-        Database::iud($item_query);
-    }
-
-    header("Location: spare_parts_estimates.php?success=Estimate updated successfully");
-    exit();
-}
-
-// Fetch estimate data
-$estimate_result = Database::search("SELECT e.*, v.registration_number, c.name as customer_name,
-                                          v.make, v.model 
-                                   FROM estimates_spareparts e 
-                                   LEFT JOIN vehicles v ON e.vehicle_id = v.id 
-                                   LEFT JOIN customers c ON v.customer_id = c.id 
-                                   WHERE e.id = '" . $id . "'");
-$estimate = $estimate_result->fetch_assoc();
-
-// Fetch estimate items
-$items_result = Database::search("SELECT * FROM estimate_items_spareparts WHERE estimate_id = '" . $id . "'");
-
 include 'header.php';
 ?>
 
 <div class="container content">
+    <?php include 'alerts.php'; ?>
+
     <div class="row mb-3">
         <div class="col-md-6">
-            <h2>Edit Spare Parts Estimate #<?php echo htmlspecialchars($estimate['estimate_number']); ?></h2>
+            <h2>Create Spare Parts Supplimentary Estimates</h2>
         </div>
         <div class="col-md-6 text-end">
             <button onclick="history.back()" class="btn btn-secondary">
@@ -74,7 +24,7 @@ include 'header.php';
 
     <div class="card">
         <div class="card-body">
-            <form id="estimateForm" method="POST">
+            <form id="estimateForm" method="POST" action="process_repair_estimate_spare_sup.php">
                 <div class="row mb-3">
                     <!-- Main container with two columns -->
                     <div class="row">
@@ -86,20 +36,18 @@ include 'header.php';
                                 <select class="form-select select2" id="vehicleSelect" name="vehicle_id" required>
                                     <option value="">Search vehicle...</option>
                                     <?php
-                                    $vehicles_query = "SELECT v.id, v.registration_number, v.make, v.model, c.name as customer_name 
-                                             FROM vehicles v 
-                                             JOIN customers c ON v.customer_id = c.id 
-                                             ORDER BY v.registration_number";
-                                    $vehicles_result = Database::search($vehicles_query);
-                                    while ($vehicle = $vehicles_result->fetch_assoc()) {
-                                        $selected = ($vehicle['id'] == $estimate['vehicle_id']) ? 'selected' : '';
-                                        echo "<option value='" . $vehicle['id'] . "' 
-                                            data-make='" . $vehicle['make'] . "' 
-                                            data-model='" . $vehicle['model'] . "' 
-                                            data-registration_number='" . $vehicle['registration_number'] . "' 
-                                            data-customer='" . $vehicle['customer_name'] . "' 
-                                            {$selected}>"
-                                            . $vehicle['registration_number'] . " - " . $vehicle['make'] . " " . $vehicle['model']
+                                    $query = "SELECT v.id, v.registration_number, v.make, v.model, c.name as customer_name 
+                        FROM vehicles v 
+                        JOIN customers c ON v.customer_id = c.id 
+                        ORDER BY v.registration_number";
+                                    $result = Database::search($query);
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<option value='" . $row['id'] . "' 
+                        data-make='" . $row['make'] . "' 
+                        data-model='" . $row['model'] . "' 
+                        data-registration_number='" . $row['registration_number'] . "' 
+                        data-customer='" . $row['customer_name'] . "'>"
+                                            . $row['registration_number'] . " - " . $row['make'] . " " . $row['model']
                                             . "</option>";
                                     }
                                     ?>
@@ -107,18 +55,7 @@ include 'header.php';
                             </div>
 
                             <!-- Vehicle Details -->
-                            <div id="vehicleDetails">
-                                <?php if ($estimate['vehicle_id']): ?>
-                                    <div class="card mt-2">
-                                        <div class="card-body">
-                                            <p><strong>Make:</strong> <?php echo htmlspecialchars($estimate['make']); ?></p>
-                                            <p><strong>Model:</strong> <?php echo htmlspecialchars($estimate['model']); ?></p>
-                                            <p><strong>Registration Number:</strong> <?php echo htmlspecialchars($estimate['registration_number']); ?></p>
-                                            <p><strong>Customer:</strong> <?php echo htmlspecialchars($estimate['customer_name']); ?></p>
-                                        </div>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
+                            <div id="vehicleDetails" class="mt-4"></div>
                         </div>
 
                         <!-- Right Column: Common Repair Descriptions -->
@@ -131,7 +68,8 @@ include 'header.php';
                                         $common_repairs = [
                                             'Scanning',
                                             'Repairing',
-                                            'Replacing'
+                                            'Replacing',
+                                            'Repainting',
                                         ];
 
                                         foreach ($common_repairs as $repair) {
@@ -152,11 +90,12 @@ include 'header.php';
                     </div>
                 </div>
 
+                <!-- Repair Items -->
                 <div class="row mb-3">
                     <div class="col-md-12">
-                        <h4>Estimate Items</h4>
+                        <h4>Estimated Repairs</h4>
                         <div class="table-responsive">
-                            <table class="table" id="itemsTable">
+                            <table class="table" id="repairItems">
                                 <thead>
                                     <tr>
                                         <th>Description</th>
@@ -172,7 +111,7 @@ include 'header.php';
                                             <input type="text" id="newDescription" class="form-control" placeholder="Enter description">
                                         </td>
                                         <td>
-                                            <input type="number" id="newPrice" class="form-control" placeholder="Enter price" step="0.01">
+                                            <input type="number" id="newPrice" class="form-control" placeholder="Enter price">
                                         </td>
                                         <td>
                                             <button type="button" class="btn btn-success" onclick="addToEstimate()">
@@ -191,11 +130,12 @@ include 'header.php';
                     </div>
                 </div>
 
+                <!-- Notes -->
                 <div class="row mb-3">
                     <div class="col-md-12">
                         <label>Notes</label>
                         <textarea class="form-control" name="notes" rows="3"
-                            placeholder="Enter any additional notes"><?php echo htmlspecialchars($estimate['notes']); ?></textarea>
+                            placeholder="Enter any additional notes"></textarea>
                     </div>
                 </div>
 
@@ -203,7 +143,7 @@ include 'header.php';
                     <div class="col-md-6">
                         <label>Estimate Date</label>
                         <input type="date" class="form-control" name="estimate_date" required
-                            value="<?php echo $estimate['estimate_date']; ?>">
+                            value="<?php echo date('Y-m-d'); ?>">
                     </div>
                 </div>
 
@@ -212,7 +152,7 @@ include 'header.php';
 
                 <div class="row">
                     <div class="col-12">
-                        <button type="submit" class="btn btn-primary">Update Estimate</button>
+                        <button type="submit" class="btn btn-primary">Save Estimate</button>
                         <button type="button" class="btn btn-secondary" onclick="printEstimate()">Print</button>
                     </div>
                 </div>
@@ -225,44 +165,13 @@ include 'header.php';
     let estimateItems = [];
 
     $(document).ready(function() {
-        // Load initial items
-        <?php
-        mysqli_data_seek($items_result, 0);
-        while ($item = $items_result->fetch_assoc()) {
-        ?>
-            estimateItems.push({
-                description: <?php echo json_encode($item['description']); ?>,
-                price: <?php echo floatval($item['price']); ?>
-            });
-        <?php
-        }
-        ?>
-
-        // Initialize display and components
-        updateEstimateDisplay();
-        initializeComponents();
-
         $('.select2').select2({
             theme: 'bootstrap-5'
         });
-        // Show initial vehicle details
-        showVehicleDetails($('#vehicleSelect option:selected'));
-
-        // Copy button functionality
-        $('.copy-btn').click(function() {
-            const text = $(this).data('text');
-            $('#newDescription').val(text);
-            $(this).removeClass('btn-primary').addClass('btn-success')
-                .html('<i class="fas fa-check"></i> Copied');
-
-            setTimeout(() => {
-                $(this).removeClass('btn-success').addClass('btn-primary')
-                    .html('<i class="fas fa-copy"></i> Copy');
-            }, 1000);
-        });
     });
 
-    function showVehicleDetails(selectedOption) {
+    $('#vehicleSelect').change(function() {
+        const selectedOption = $(this).find('option:selected');
         if (selectedOption.val()) {
             document.getElementById('vehicleDetails').innerHTML = `
                 <div class="card mt-2">
@@ -274,29 +183,11 @@ include 'header.php';
                     </div>
                 </div>`;
         }
-    }
-
-    $('#vehicleSelect').change(function() {
-        showVehicleDetails($(this).find('option:selected'));
     });
 
-    function updateVehicleDetails(selectedOption) {
-        const vehicleDetails = `
-        <div class="card mt-2">
-            <div class="card-body">
-                <p><strong>Make:</strong> ${selectedOption.data('make')}</p>
-                <p><strong>Model:</strong> ${selectedOption.data('model')}</p>
-                <p><strong>Registration Number:</strong> ${selectedOption.data('registration_number')}</p>
-                <p><strong>Customer:</strong> ${selectedOption.data('customer')}</p>
-            </div>
-        </div>`;
-        $('#vehicleDetails').html(vehicleDetails);
-    }
-
     function addToEstimate() {
-        const description = $('#newDescription').val().trim();
-        const priceInput = $('#newPrice').val().trim();
-        const price = parseFloat(priceInput);
+        const description = document.getElementById('newDescription').value;
+        const price = parseFloat(document.getElementById('newPrice').value);
 
         if (!description) {
             alert('Please enter the description');
@@ -304,10 +195,9 @@ include 'header.php';
         }
 
         estimateItems.push({
-            description: description,
-            price: price
+            description,
+            price
         });
-
         updateEstimateDisplay();
         clearInputs();
     }
@@ -318,73 +208,69 @@ include 'header.php';
     }
 
     function updateEstimateDisplay() {
-        const tbody = $('#itemsTable tbody');
-        tbody.empty();
-
+        const tbody = document.querySelector('#repairItems tbody');
+        tbody.innerHTML = '';
         let total = 0;
+
         estimateItems.forEach((item, index) => {
-            if (item.price) {
-                total += parseFloat(item.price);
-            }
-            tbody.append(`
+            total += item.price;
+            tbody.innerHTML += `
             <tr>
                 <td>${item.description}</td>
-                <td>${item.price ? item.price.toFixed(2) : '--'}</td>
+                <td>${item.price.toFixed(2)}</td>
                 <td>
                     <button type="button" class="btn btn-danger btn-sm" onclick="removeFromEstimate(${index})">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
-            </tr>
-        `);
+            </tr>`;
         });
 
-        $('#totalEstimate').text(total > 0 ? total.toFixed(2) : '--');
-        $('#estimateItems').val(JSON.stringify(estimateItems));
-        $('#finalAmount').val(total);
+        document.getElementById('totalEstimate').textContent = total.toFixed(2);
+        document.getElementById('estimateItems').value = JSON.stringify(estimateItems);
+        document.getElementById('finalAmount').value = total;
     }
 
     function clearInputs() {
-        $('#newDescription').val('');
-        $('#newPrice').val('');
-        $('#newDescription').focus();
+        document.getElementById('newDescription').value = '';
+        document.getElementById('newPrice').value = '';
     }
 
     function printEstimate() {
-        if (!$('#vehicleSelect').val()) {
+        if (!document.getElementById('vehicleSelect').value) {
             alert('Please select a vehicle first');
             return;
         }
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'print_repair_estimate_spare_sup.php';
+        form.target = '_blank';
 
-        const form = $('<form>', {
-            method: 'POST',
-            action: 'print_repair_estimate_spare.php?id=<?php echo $id; ?>',
-            target: '_blank'
-        });
+        const itemsInput = document.createElement('input');
+        itemsInput.type = 'hidden';
+        itemsInput.name = 'estimate_items';
+        itemsInput.value = JSON.stringify(estimateItems);
 
-        form.append($('<input>', {
-            type: 'hidden',
-            name: 'estimate_items',
-            value: JSON.stringify(estimateItems)
-        }));
+        const vehicleInput = document.createElement('input');
+        vehicleInput.type = 'hidden';
+        vehicleInput.name = 'vehicle_id';
+        vehicleInput.value = document.getElementById('vehicleSelect').value;
 
-        form.append($('<input>', {
-            type: 'hidden',
-            name: 'vehicle_id',
-            value: $('#vehicleSelect').val()
-        }));
-
-        form.appendTo('body').submit().remove();
+        form.appendChild(itemsInput);
+        form.appendChild(vehicleInput);
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
     }
 
-    $('#estimateForm').on('submit', function(e) {
+    document.getElementById('estimateForm').onsubmit = function(e) {
         if (estimateItems.length === 0) {
             e.preventDefault();
-            alert('Please add at least one estimate item');
+            alert('Please add at least one repair item');
             return false;
         }
         return true;
-    });
+    };
 
     $(document).ready(function() {
         $('.copy-btn').click(function() {

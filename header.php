@@ -463,7 +463,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <i class="fas fa-users"></i> Customers
             </a>
 
-            <a class="nav-link <?php echo $current_page === 'estimates.php' | $current_page === 'initial_estimates.php' | $current_page === 'supplementary_estimates.php' | $current_page === 'spare_parts_estimates.php' ? 'active' : ''; ?>">
+            <a class="nav-link <?php echo $current_page === 'estimates.php' | $current_page === 'initial_estimates.php' | $current_page === 'supplementary_estimates.php' | $current_page === 'spare_parts_estimates.php' | $current_page === 'spare_parts_estimates_sup.php' ? 'active' : ''; ?>">
                 <i class="fas fa-calculator"></i> Estimates
             </a>
 
@@ -476,7 +476,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <i class="fas fa-file-medical"></i> Supplementary Estimates
                 </a>
                 <a class="nav-link <?php echo $current_page === 'spare_parts_estimates.php' ? 'active' : ''; ?>" href="spare_parts_estimates.php">
-                    <i class="fas fa-cogs"></i> Spare Parts Estimates
+                    <i class="fas fa-cog"></i> Spare Parts Estimates
+                </a>
+                <a class="nav-link <?php echo $current_page === 'spare_parts_estimates_sup.php' ? 'active' : ''; ?>" href="spare_parts_estimates_sup.php">
+                    <i class="fas fa-cogs"></i> Supplementary Spare Parts Estimates
                 </a>
             </div>
 

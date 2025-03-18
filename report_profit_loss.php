@@ -19,25 +19,27 @@ $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
 // Check if export to PDF is requested
 if (isset($_GET['export_pdf'])) {
     // Get all the required data
-    
+
     // Income Data
-    $query = "SELECT SUM(total_amount) as total 
-              FROM repair_invoices 
-              WHERE invoice_date BETWEEN '$start_date' AND '$end_date'";
+    $query = "SELECT SUM(amount) as total 
+FROM payment_transactions 
+WHERE invoice_type = 'repair' 
+AND payment_date BETWEEN '$start_date' AND '$end_date'";
     $result = Database::search($query);
     $repair_income = $result->fetch_assoc()['total'] ?? 0;
-    
-    $query = "SELECT SUM(total_amount) as total 
-              FROM item_invoices 
-              WHERE invoice_date BETWEEN '$start_date' AND '$end_date'";
+
+    $query = "SELECT SUM(amount) as total 
+FROM payment_transactions 
+WHERE invoice_type = 'item' 
+AND payment_date BETWEEN '$start_date' AND '$end_date'";
     $result = Database::search($query);
     $item_income = $result->fetch_assoc()['total'] ?? 0;
-    
+
     $income_data = array(
         'repair_income' => $repair_income,
         'item_income' => $item_income
     );
-    
+
     // Expense Data
     $query = "SELECT category, SUM(amount) as total 
               FROM expenses 
@@ -49,38 +51,38 @@ if (isset($_GET['export_pdf'])) {
     while ($row = $result->fetch_assoc()) {
         $general_expenses[] = $row;
     }
-    
+
     $query = "SELECT SUM(amount) as total 
               FROM supplier_transactions 
               WHERE transaction_type = 'credit' 
               AND transaction_date BETWEEN '$start_date' AND '$end_date'";
     $result = Database::search($query);
     $supplier_payments = $result->fetch_assoc()['total'] ?? 0;
-    
+
     $query = "SELECT SUM(total_amount) as total 
               FROM salary_payments 
               WHERE payment_date BETWEEN '$start_date' AND '$end_date'";
     $result = Database::search($query);
     $salary_payments = $result->fetch_assoc()['total'] ?? 0;
-    
+
     $expense_data = array(
         'general_expenses' => $general_expenses,
         'supplier_payments' => $supplier_payments,
         'salary_payments' => $salary_payments
     );
-    
+
     // Calculate totals
     $total_income = $repair_income + $item_income;
     $total_expenses = $salary_payments + $supplier_payments;
     foreach ($general_expenses as $expense) {
         $total_expenses += $expense['total'];
     }
-    
+
     $totals = array(
         'total_income' => $total_income,
         'total_expenses' => $total_expenses
     );
-    
+
     // Generate PDF
     $date_range = date('F d, Y', strtotime($start_date)) . ' to ' . date('F d, Y', strtotime($end_date));
     $pdf = new ReportPDF('P', 'Profit & Loss Statement');
@@ -98,9 +100,9 @@ include 'header.php';
             <h2>Profit & Loss Statement</h2>
         </div>
         <div class="col-md-6 text-end">
-            <a href="?start_date=<?php echo $start_date; ?>&end_date=<?php echo $end_date; ?>&export_pdf=1" 
-               class="btn btn-primary" target="_blank">
-               <i class="fas fa-print"></i> Print Report
+            <a href="?start_date=<?php echo $start_date; ?>&end_date=<?php echo $end_date; ?>&export_pdf=1"
+                class="btn btn-primary" target="_blank">
+                <i class="fas fa-print"></i> Print Report
             </a>
             <button onclick="history.back()" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Reports
@@ -114,15 +116,15 @@ include 'header.php';
                 <div class="col-md-4">
                     <div class="form-group">
                         <label>Start Date</label>
-                        <input type="date" name="start_date" class="form-control" 
-                               value="<?php echo $start_date; ?>" required>
+                        <input type="date" name="start_date" class="form-control"
+                            value="<?php echo $start_date; ?>" required>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="form-group">
                         <label>End Date</label>
-                        <input type="date" name="end_date" class="form-control" 
-                               value="<?php echo $end_date; ?>" required>
+                        <input type="date" name="end_date" class="form-control"
+                            value="<?php echo $end_date; ?>" required>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -136,19 +138,21 @@ include 'header.php';
                 <tbody>
                     <?php
                     // Repair Income
-                    $query = "SELECT SUM(total_amount) as total 
-                             FROM repair_invoices 
-                             WHERE invoice_date BETWEEN '$start_date' AND '$end_date'";
+                    $query = "SELECT SUM(amount) as total 
+                    FROM payment_transactions 
+                    WHERE invoice_type = 'repair' 
+                    AND payment_date BETWEEN '$start_date' AND '$end_date'";
                     $result = Database::search($query);
                     $repair_income = $result->fetch_assoc()['total'] ?? 0;
-                    
+
                     // Item Sales Income
-                    $query = "SELECT SUM(total_amount) as total 
-                             FROM item_invoices 
-                             WHERE invoice_date BETWEEN '$start_date' AND '$end_date'";
+                    $query = "SELECT SUM(amount) as total 
+                    FROM payment_transactions 
+                    WHERE invoice_type = 'item' 
+                    AND payment_date BETWEEN '$start_date' AND '$end_date'";
                     $result = Database::search($query);
                     $item_income = $result->fetch_assoc()['total'] ?? 0;
-                    
+
                     $total_income = $repair_income + $item_income;
                     ?>
                     <tr>
@@ -182,12 +186,12 @@ include 'header.php';
                     while ($row = $result->fetch_assoc()):
                         $total_expenses += $row['total'];
                     ?>
-                    <tr>
-                        <td><?php echo $row['category']; ?></td>
-                        <td class="text-end"><?php echo formatCurrency($row['total']); ?></td>
-                    </tr>
+                        <tr>
+                            <td><?php echo $row['category']; ?></td>
+                            <td class="text-end"><?php echo formatCurrency($row['total']); ?></td>
+                        </tr>
                     <?php endwhile; ?>
-                    
+
                     <!-- Supplier Payments -->
                     <?php
                     $query = "SELECT SUM(amount) as total 
@@ -259,84 +263,84 @@ include 'header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Income Distribution Chart
-new Chart(document.getElementById('incomeChart'), {
-    type: 'pie',
-    data: {
-        labels: ['Repair Services', 'Item Sales'],
-        datasets: [{
-            data: [<?php echo $repair_income; ?>, <?php echo $item_income; ?>],
-            backgroundColor: ['rgb(75, 192, 192)', 'rgb(255, 99, 132)']
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Income Distribution'
+    // Income Distribution Chart
+    new Chart(document.getElementById('incomeChart'), {
+        type: 'pie',
+        data: {
+            labels: ['Repair Services', 'Item Sales'],
+            datasets: [{
+                data: [<?php echo $repair_income; ?>, <?php echo $item_income; ?>],
+                backgroundColor: ['rgb(75, 192, 192)', 'rgb(255, 99, 132)']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Income Distribution'
+                }
             }
         }
-    }
-});
+    });
 
-// Expense Distribution Chart
-<?php
-// Get all expense categories including supplier and salary payments
-$query = "SELECT category, SUM(amount) as total 
+    // Expense Distribution Chart
+    <?php
+    // Get all expense categories including supplier and salary payments
+    $query = "SELECT category, SUM(amount) as total 
           FROM expenses 
           WHERE expense_date BETWEEN '$start_date' AND '$end_date' 
           GROUP BY category 
           ORDER BY total DESC";
-$result = Database::search($query);
-$categories = [];
-$amounts = [];
+    $result = Database::search($query);
+    $categories = [];
+    $amounts = [];
 
-// Add regular expenses
-while ($row = $result->fetch_assoc()) {
-    $categories[] = $row['category'];
-    $amounts[] = $row['total'];
-}
+    // Add regular expenses
+    while ($row = $result->fetch_assoc()) {
+        $categories[] = $row['category'];
+        $amounts[] = $row['total'];
+    }
 
-// Add supplier payments
-$categories[] = 'Supplier Payments';
-$amounts[] = $supplier_payments;
+    // Add supplier payments
+    $categories[] = 'Supplier Payments';
+    $amounts[] = $supplier_payments;
 
-// Add salary payments
-$categories[] = 'Salary Payments';
-$amounts[] = $salary_payments;
-?>
+    // Add salary payments
+    $categories[] = 'Salary Payments';
+    $amounts[] = $salary_payments;
+    ?>
 
-new Chart(document.getElementById('expenseChart'), {
-    type: 'bar',
-    data: {
-        labels: <?php echo json_encode($categories); ?>,
-        datasets: [{
-            label: 'Amount',
-            data: <?php echo json_encode($amounts); ?>,
-            backgroundColor: 'rgb(54, 162, 235)'
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Expense Distribution'
-            }
+    new Chart(document.getElementById('expenseChart'), {
+        type: 'bar',
+        data: {
+            labels: <?php echo json_encode($categories); ?>,
+            datasets: [{
+                label: 'Amount',
+                data: <?php echo json_encode($amounts); ?>,
+                backgroundColor: 'rgb(54, 162, 235)'
+            }]
         },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value) {
-                        return 'Rs. ' + value.toLocaleString();
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Expense Distribution'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'Rs. ' + value.toLocaleString();
+                        }
                     }
                 }
             }
         }
-    }
-});
+    });
 </script>
 
 <?php include 'footer.php'; ?>

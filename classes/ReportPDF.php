@@ -256,8 +256,7 @@ $this->Ln();
         $this->SetFont('helvetica', 'B', 15);
         $this->Cell(0, 10, 'Employee Performance Report', 0, 1, 'C');
         $this->SetFont('helvetica', '', 10);
-        $this->Cell(0, 10, 'Period: ' . $date_range, 0, 1, 'C');
-        $this->Ln(5);
+        $this->Cell(0, 0, 'Period: ' . $date_range, 0, 1, 'C');
 
         // Employee Details
         $this->SetFont('helvetica', 'B', 12);
@@ -267,32 +266,32 @@ $this->Ln();
         $this->Cell(70, 6, $data[0]['employee_name'], 0);
         $this->Cell(30, 6, 'Phone:', 0);
         $this->Cell(0, 6, $data[0]['employee_phone'], 0, 1);
-        $this->Ln(5);
+        $this->Ln(2);
 
         // Performance Summary
         $this->SetFont('helvetica', 'B', 12);
         $this->Cell(0, 10, 'Performance Summary', 0, 1);
         $this->SetFont('helvetica', '', 10);
 
-        $this->Cell(50, 6, 'Days Worked:', 0);
-        $this->Cell(50, 6, number_format($totals['days_worked'], 1) . ' days', 0, 1);
-
         $this->Cell(50, 6, 'Total Working Hours:', 0);
-        $this->Cell(50, 6, number_format($totals['working_hours'], 2) . ' hours', 0, 1);
+        $this->Cell(50, 6, number_format($totals['working_hours'], 2) . ' hours', 0, 0);
 
         $this->Cell(50, 6, 'Total OT Hours:', 0);
         $this->Cell(50, 6, number_format($totals['ot_hours'], 2) . ' hours', 0, 1);
 
+        $this->Cell(50, 6, 'Days Worked:', 0);
+        $this->Cell(50, 6, number_format($totals['days_worked'], 1) . ' days', 0, 0);
+
         $this->Cell(50, 6, 'Total Earnings:', 0);
         $this->Cell(50, 6, 'Rs. ' . number_format($totals['total_amount'], 2), 0, 1);
-        $this->Ln(5);
+        $this->Ln(2);
 
         // Detailed Performance Table
         $this->SetFont('helvetica', 'B', 12);
         $this->Cell(0, 10, 'Daily Performance Details', 0, 1);
 
         // Table Header
-        $this->SetFillColor(200, 200, 200);
+        $this->SetFillColor(220, 220, 220);
         $this->SetFont('helvetica', 'B', 9);
 
         $this->Cell(20, 7, 'Date', 1, 0, 'C', true);
@@ -696,5 +695,4 @@ $this->Ln();
         $this->Cell($col_widths[0] + $col_widths[1] + $col_widths[2] + $col_widths[3], 7, 'Total Amount', 1, 0, 'R');
         $this->Cell($col_widths[4], 7, number_format($totals['repair_amount'], 2), 1, 1, 'R');
     }
-    
 }
