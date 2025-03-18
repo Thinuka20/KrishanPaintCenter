@@ -13,9 +13,12 @@ function generateUniqueNumber($prefix) {
 }
 
 function formatCurrency($amount) {
-    return 'Rs. ' . number_format($amount, 2);
+    if ($amount == 0) {
+        return '--';
+    } else {
+        return 'Rs.' . number_format($amount, 2);
+    }
 }
-
 function uploadImage($file, $directory) {
     $target_dir = UPLOAD_PATH . $directory . '/';
     if (!file_exists($target_dir)) {

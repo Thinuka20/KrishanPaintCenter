@@ -29,8 +29,8 @@ class ReportPDFinvoices extends TCPDF {
         $this->SetMargins(0, 0, 0);
         $this->SetAutoPageBreak(false, 0);
     
-        $img_file = 'uploads/letterhead.png';
-        // $img_file = 'uploads/letterhead.jpg';
+        // $img_file = 'uploads/letterhead.png';
+        $img_file = 'uploads/letterhead.jpg';
         if (file_exists($img_file)) {
             $this->Image($img_file, 0, 0, 210, 297, '', '', '', false, 300, '', false, false, 0);
         }

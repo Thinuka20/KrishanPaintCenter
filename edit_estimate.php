@@ -311,7 +311,7 @@ include 'header.php';
         const category = document.getElementById('newCategory').value;
         const price = parseFloat(document.getElementById('newPrice').value);
 
-        if (!description || !price) {
+        if (!description || price === null || price === undefined || price === '' || isNaN(price)) {
             alert('Please enter both description and price');
             return;
         }
@@ -390,7 +390,7 @@ include 'header.php';
                 <tr>
                     <td>${item.description}</td>
                     <td>${categoryName}</td>
-                    <td>${item.price.toFixed(2)}</td>
+                    <td>${item.price == 0 ? '--' : item.price.toFixed(2)}</td>
                     <td>
                         <button type="button" class="btn btn-danger btn-sm" onclick="removeFromEstimate(${originalIndex})">
                             <i class="fas fa-trash"></i>
@@ -403,12 +403,12 @@ include 'header.php';
             tbody.innerHTML += `
                 <tr>
                     <td colspan="2" class="text-end"><em>${categoryName} Total:</em></td>
-                    <td colspan="2">${categoryTotal.toFixed(2)}</td>
+                    <td colspan="2">${categoryTotal == 0 ? '--' : categoryTotal.toFixed(2)}</td>
                 </tr>
             `;
         }
 
-        document.getElementById('totalEstimate').textContent = total.toFixed(2);
+        document.getElementById('totalEstimate').textContent = total === 0 ? '--' : total.toFixed(2);
         document.getElementById('estimateItems').value = JSON.stringify(estimateItems);
         document.getElementById('finalAmount').value = total;
     }
